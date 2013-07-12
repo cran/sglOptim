@@ -1,4 +1,4 @@
-45597a016b71b2b9737876bd08062b32 *DESCRIPTION
+ee90501740e98583647c17dfc91847eb *DESCRIPTION
 7a72049bef27a3468de0cb51d4099399 *NAMESPACE
 5043f1e54e5c91b4d81132b0c63045c6 *R/lambda_sequence.R
 44330e66a2e8a075ce7a7a2009be3bf3 *R/prepare_args.R
@@ -61,6 +61,6 @@ a2a3a5b919d1ffa1f2715eacdb0e15ba *src/Makevars
 46755165db782defbc63cb743a12dfe1 *src/only_for_testing.cpp
 b9da84b66743aeb3ad4e9827367cac7f *src/test_objective.h
 9ca27e836cd07a3b34e2e100e37757b3 *tests/cv_test.R
-554eccdc12c932c045d1f1149ae8734c *tests/fit_test.R
-826cecd1565619cc4dcfcb91dedb25c4 *tests/lambda_sequence_test.R
+a92f2f4de50d07daefb3a0650480b641 *tests/fit_test.R
+abff295937d58e6dfdc20f747cf3fbf9 *tests/lambda_sequence_test.R
 f2d29412a3ba965fea1f2072c77b1a81 *tests/subsampling_test.R
