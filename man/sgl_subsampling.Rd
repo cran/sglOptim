@@ -4,17 +4,18 @@
 \usage{
   sgl_subsampling(module_name, PACKAGE, data,
     parameterGrouping, groupWeights, parameterWeights,
-    alpha, lambda, training, test, max.threads = 2L,
+    alpha, lambda, training, test, collapse = FALSE,
+    max.threads = 2L,
     algorithm.config = sgl.standard.config)
 }
 \arguments{
   \item{module_name}{reference to objective specific C++
-  routines}
+  routines.}
 
-  \item{PACKAGE}{name of the calling package}
+  \item{PACKAGE}{name of the calling package.}
 
   \item{data}{a list of data objects -- will be parsed to
-  the specified module}
+  the specified module.}
 
   \item{parameterGrouping}{grouping of parameters, a vector
   of length \eqn{p}. Each element of the vector specifying
@@ -47,8 +48,12 @@
   corresponding subsample. The length of the list must
   equal the length of the \code{training} list.}
 
+  \item{collapse}{if \code{TRUE} the results for each
+  subsample will be collapse into one result (this is
+  useful if the subsamples are not overlapping)}
+
   \item{max.threads}{the maximal number of threads to be
-  used}
+  used.}
 
   \item{algorithm.config}{the algorithm configuration to be
   used.}

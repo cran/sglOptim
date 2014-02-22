@@ -36,19 +36,13 @@
 #' @param cv.indices a list of indices of a cross validation splitting. 
 #' If \code{cv.indices = NULL} then a random splitting will be generated using the \code{fold} argument.
 #' @param max.threads the maximal number of threads to be used.
-#' @param seed the seed used for generating the random cross validation splitting, only used if \code{fold}\eqn{\le}\code{max(table(classes))}. 
 #' @param algorithm.config the algorithm configuration to be used. 
 #' @return sgl object content will depend on the C++ response class.
 #' @author Martin Vincent
 #' @export
-sgl_cv <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, fold = 2L, cv.indices = list(), max.threads = 2L, seed = 331L, algorithm.config = sgl.standard.config) {
-	
-	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
-	
+sgl_cv <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, fold = 2L, cv.indices = list(), max.threads = 2L, algorithm.config = sgl.standard.config) {
 	
 	if(length(cv.indices) == 0) {
-		
-		use.cv.indices <- FALSE
 		
 		# Check fold
 		if(fold < 2) {
@@ -62,48 +56,44 @@ sgl_cv <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, 
 		if(fold > max(table(data$G))) {
 			# use random sample indices
 			use.cv.indices <- TRUE
-			cv.indices <- split(sample(0:(length(data$G))-1L), 1:fold)
+			cv.indices <- split(sample(1:(length(data$G))), 1:fold)
+			
+			# TODO need to ensure that each split has one sample from each class
+			
+		} else {
+			# compute cv indices
+			cv.indices <- lapply(unique(data$G), function(x) .divide_indices(which(data$G == x), fold))
+			cv.indices <- lapply(cv.indices, function(x) sample(x))
+			cv.indices <- lapply(1:fold, function(i) sort(unlist(lapply(cv.indices, function(x) x[[i]]))))
 		}
 		
 	} else {
-		
-		cv.indices <- lapply(cv.indices, function(x) as.integer(x-1))
-		use.cv.indices <- TRUE
+		# use user suplied cv splitting
 	}
 	
-	call_sym <- paste(module_name, "sgl_cv", sep="_")
-	res <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, args$alpha, lambda, fold, cv.indices, use.cv.indices, max.threads, seed, algorithm.config)				
-		
-        # Correct cv.indices
-        res$cv.indices <- lapply(res$cv.indices, function(x) x+1L)
-
-        # Reorganize response output
-        response_names <- names(res$response[[1]])
-        res$response <- lapply(1:length(res$response[[1]]), function(i) lapply(1:length(lambda), function(j) lapply(res$response, function(x) x[[i]][[j]])))
-
-        # Set names
-        res$response <- lapply(res$response, function(x) {names(x) <- lambda; x})
-        names(res$response) <- response_names
-
-        # Collapse subsample list to matrix
-        res$response <- lapply(res$response, function(response_list) .reorder_response_list(response_list, res$cv.indices, data$group.names, data$sample.names))
-
-        # Set class and return
-        class(res) <- "sgl"
+	samples <- 1:max(unlist(cv.indices)) #TODO we should get the number of samples form somewhere else and chek consistency of cv.indices and samples
+	training <- lapply(cv.indices, function(x) samples[-x])
+	test <- cv.indices
+	
+	res <- sgl_subsampling(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, training, test, TRUE, max.threads, algorithm.config)
+	
+	# Add cv.indices
+	res$cv.indices <- cv.indices
+	
+	# Set class and return
+	class(res) <- "sgl"
 	return(res)
 }
 
-.reorder_response <- function(responses, cv, group.names, sample.names) {
-
-    r <- matrix(nrow = nrow(responses[[1]]), ncol = length(unlist(cv)))
-    rownames(r) <- group.names
-    colnames(r) <- sample.names
-
-    for(i in 1:length(cv)) {
-        r[,cv[[i]]] <- responses[[i]]
-    }
-
-    return(r)
+.divide_indices <- function(indices, fold) {
+	
+	if(fold > length(indices)) {
+		stop("fold large than length of indices vector")
+	}
+	
+	tmp <- (1:fold)*round(length(indices)/fold)
+	tmp[length(tmp)] <- length(indices)
+	tmp <- c(0,tmp)
+	
+	return(lapply(2:length(tmp), function(i) indices[(tmp[i-1]+1):tmp[i]]))
 }
-
-.reorder_response_list <- function(response_list, cv, group.names, sample.names) lapply(response_list, function(r) .reorder_response(r, cv, group.names, sample.names))

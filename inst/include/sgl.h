@@ -53,6 +53,15 @@
 #include <Backtrace.h>
 #endif
 
+//Should openmp be used
+#ifndef _OPENMP
+//No openmp
+//openmp (multithreading) not supported on this system - compiling without openmp support
+#else
+//Use openmp
+#define SGL_USE_OPENMP
+#endif
+
 #include <armadillo>
 #include <Rcpp.h>
 
@@ -67,10 +76,6 @@ using boost::tuple;
 
 //Arma additions
 #include <sgl/arma_additions.h>
-
-//Indices tools
-#include <Indices/Indices.h>
-#include <Indices/GroupedIndices.h>
 
 //R tools
 #include <rtools.h>
@@ -100,6 +105,7 @@ namespace sgl {
 #include "sgl/objective/sgl_matrix_data.h"
 #include "sgl/objective/sgl_gl_loss.h"
 #include "sgl/objective/sgl_algorithm_config.h"
+#include "sgl/objective/simplifier.h"
 #include "sgl/objective/linear_response.h"
 #include "sgl/objective/linear_predictor.h"
 }

@@ -35,9 +35,11 @@ SEXP FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta) {
 	const sgl::sparse_matrix_field beta = get_field < sgl::sparse_matrix > (r_beta);
 
 	PREDICTOR predictor;
-	field<PREDICTOR::response_type> responses = predictor.predict(data, beta);
+    arma::field<PREDICTOR::response_type> responses = predictor.predict(data, beta);
 
-	return rObject(rObject(create_rList(responses)));
+    rList res;
+    res.attach(PREDICTOR::response_type::simplify(responses), "responses");
+    return rObject(res);
 }
 
 SEXP R_FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta) {

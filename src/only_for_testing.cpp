@@ -1,6 +1,6 @@
-/* Routines for multinomial and logistic sparse group lasso regression.
+/* Routines for linear sparse group lasso regression.
  Intended for use with R.
- Copyright (C) 2012 Martin Vincent
+ Copyright (C) 2014 Martin Vincent
 
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -37,15 +37,6 @@
 //Should the timers be activated (only needed for profiling the code)
 //#define SGL_TIMING
 
-//Should openmp be used
-#ifndef _OPENMP
-//No openmp
-//openmp (multithreading) not supported on this system - compiling without openmp support
-#else
-//Use openmp
-#define SGL_USE_OPENMP
-#endif
-
 //Sgl optimizer
 #include <sgl.h>
 
@@ -70,7 +61,6 @@
 #define PREDICTOR sgl::LinearPredictor < sgl::matrix , sgl::LinearResponse >
 
 #include <sgl/RInterface/sgl_predict.h>
-#include <sgl/RInterface/sgl_cv.h>
 #include <sgl/RInterface/sgl_subsampling.h>
 
 /*********************************
@@ -96,7 +86,6 @@
 #define PREDICTOR sgl::LinearPredictor < sgl::sparse_matrix , sgl::LinearResponse >
 
 #include <sgl/RInterface/sgl_predict.h>
-#include <sgl/RInterface/sgl_cv.h>
 #include <sgl/RInterface/sgl_subsampling.h>
 
 /* **********************************
@@ -111,8 +100,7 @@ static const R_CallMethodDef sglCallMethods[] = {
 		SGL_LAMBDA(sgl_test_dense), SGL_LAMBDA(sgl_test_sparse),
 		SGL_FIT(sgl_test_dense), SGL_FIT(sgl_test_sparse),
 		SGL_PREDICT(sgl_test_dense), SGL_PREDICT(sgl_test_sparse),
-		SGL_CV(sgl_test_dense), SGL_CV(sgl_test_sparse),
-		SGL_SUBSAMPLING(sgl_test_dense), SGL_SUBSAMPLING(sgl_test_sparse),
+        SGL_SUBSAMPLING(sgl_test_dense), SGL_SUBSAMPLING(sgl_test_sparse),
 		{NULL}};
 
 extern "C" {
@@ -123,13 +111,13 @@ void R_init_sglOptim(DllInfo *info)
 {
 	// Print warnings
 #ifndef SGL_USE_OPENMP
-	Rcout << "SglOptim warning: openmp (multithreading) not supported on this system" << endl;
+	Rcout << "SglOptim warning: openmp (multithreading) not supported on this system" << std::endl;
 #endif
 
 #ifdef SGL_DEBUG
 	Rcout
 			<< "SglOptim warning: compiled with debugging on -- this may slow down the runtime of the sgl routines"
-			<< endl;
+			<< std::endl;
 #endif
 
 // Register the .Call routines.

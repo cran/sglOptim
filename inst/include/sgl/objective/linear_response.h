@@ -8,6 +8,7 @@
 #ifndef LINEAR_RESPONSE_H_
 #define LINEAR_RESPONSE_H_
 
+class LP {}; //linear predictors
 
 class LinearResponse {
 
@@ -38,49 +39,21 @@ public:
 		return *this;
 	}
 
+    sgl::vector const& get(LP) const {
+        return linear_predictors;
+    }
+
+    //TODO automate the construction of these functions
+    template<typename T>
+    static rList simplify(T const& responses) {
+
+        rList list;
+
+        list.attach(simplifier<sgl::vector, LP>::simplify(responses), "link");
+
+        return list;
+     }
+
 };
-
-
-rList create_rList(field<LinearResponse> const& responses)
-	{
-		rList list;
-
-		sgl::natural number_of_samples = responses.n_rows;
-		sgl::natural length_of_lambda = responses.n_cols;
-
-		//TODO remove
-		//sgl::natural number_of_groups = responses(0, 0).n_groups;
-
-		sgl::matrix_field link(length_of_lambda);
-
-		for (sgl::natural i = 0; i < length_of_lambda; ++i) {
-
-			link(i).set_size(responses(0, i).linear_predictors.n_elem, number_of_samples);
-
-			for (sgl::natural j = 0; j < number_of_samples; ++j) {
-
-				link(i).col(j) = responses(j, i).linear_predictors;
-			}
-		}
-
-		list.attach(rObject(link), "link");
-
-		return list;
-	}
-
-rList create_rList(field< field<LinearResponse> > const& responses) {
-
-	rList list;
-
-	for(u32 i = 0; i < responses.n_elem; ++i) {
-
-		std::stringstream ss;
-		ss << "subsample " << i;
-
-		list.attach(rObject(create_rList(responses(i))), ss.str());
-	}
-
-	return list;
-}
 
 #endif /* LINEAR_RESPONSE_H_ */

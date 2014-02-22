@@ -85,7 +85,7 @@ rObject::rObject(arma::Mat<double> const& m) :
 	PROTECT(exp = Rf_allocVector(REALSXP, m.n_elem));
 
 	//Copy data
-	arrayops::copy(REAL(exp), m.mem, m.n_elem);
+    arma::arrayops::copy(REAL(exp), m.mem, m.n_elem);
 
 	Rf_setAttrib(exp, R_DimSymbol, matrixDim);
 }
@@ -110,7 +110,7 @@ rObject::rObject(arma::Mat<arma::u32> const& m) :
 	Rf_setAttrib(exp, R_DimSymbol, matrixDim);
 }
 
-rObject::rObject(Col<double> const& v) :
+rObject::rObject(arma::Col<double> const& v) :
 		number_of_protects(1), unprotect_on_destruction(new bool), exp_counter(
 				new int) {
 
@@ -120,11 +120,11 @@ rObject::rObject(Col<double> const& v) :
 	PROTECT(exp = Rf_allocVector(REALSXP, v.n_elem));
 
 	//Copy data
-	arrayops::copy(REAL(exp), v.mem, v.n_elem);
+    arma::arrayops::copy(REAL(exp), v.mem, v.n_elem);
 
 }
 
-rObject::rObject(Col<arma::u32> const& v) :
+rObject::rObject(arma::Col<arma::u32> const& v) :
 		number_of_protects(1), unprotect_on_destruction(new bool), exp_counter(
 				new int) {
 
@@ -135,21 +135,6 @@ rObject::rObject(Col<arma::u32> const& v) :
 
 	//Copy data
 	copy_cast(INTEGER(exp), v.mem, v.n_elem);
-}
-
-rObject::rObject(Indices i) :
-		number_of_protects(1), unprotect_on_destruction(new bool), exp_counter(
-				new int) {
-
-	*this->unprotect_on_destruction = true;
-	*exp_counter = 1;
-
-	PROTECT(exp = Rf_allocVector(INTSXP, i.size()));
-
-	//Copy data
-	arma::uvec tmp = i.getElements();
-	copy_cast(INTEGER(exp), tmp.mem, tmp.n_elem);
-
 }
 
 rObject::rObject(arma::sp_mat const& m) :
@@ -182,30 +167,33 @@ rObject::rObject(arma::sp_mat const& m) :
 	SEXP values;
 	PROTECT(values = Rf_allocVector(REALSXP, m.n_nonzero));
 	SET_VECTOR_ELT(exp, 3, values);
-	arrayops::copy(REAL(values), m.values, m.n_nonzero);
+    arma::arrayops::copy(REAL(values), m.values, m.n_nonzero);
 }
 
-//TODO use rList instead
 template<typename T>
 rObject::rObject(arma::field<T> const& field) :
-		number_of_protects(1), unprotect_on_destruction(new bool), exp_counter(
-				new int) {
+        number_of_protects(2), unprotect_on_destruction(new bool), exp_counter(
+                new int) {
 
-	*this->unprotect_on_destruction = unprotect_on_destruction;
-	*exp_counter = 1;
+    *this->unprotect_on_destruction = unprotect_on_destruction;
+    *exp_counter = 1;
 
-	PROTECT(exp = Rf_allocVector(VECSXP, field.n_elem)); // Creating a list with n_elem elements
+    SEXP matrixDim;
+    PROTECT(matrixDim = Rf_allocVector(INTSXP, 2));
+    INTEGER(matrixDim)[0] = field.n_rows;
+    INTEGER(matrixDim)[1] = field.n_cols;
 
-	//Construct list
-	unsigned int i;
-	for (i = 0; i < field.n_elem; i++) {
-		// attaching
-		rObject tmp(field(i));
-		number_of_protects += tmp.takeover_protection();
+    PROTECT(exp = Rf_allocVector(VECSXP, field.n_elem)); // Creating a list with n_elem elements
 
-		SET_VECTOR_ELT(exp, i, tmp);
-	}
+    //Construct list
+    unsigned int i;
+    for (i = 0; i < field.n_elem; i++) {
+        // attaching
+        rObject tmp(field(i));
+        SET_VECTOR_ELT(exp, i, tmp);
+    }
 
+    Rf_setAttrib(exp, R_DimSymbol, matrixDim);
 }
 
 rObject::rObject(rList const& list) :

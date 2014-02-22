@@ -240,7 +240,7 @@ sgl::parameter SglOptimizer < SGL >::optimize_single(sgl::parameter & x, sgl::pa
 
 			//Continue quadratic loop
 
-			ASSERT_IS_NON_NEGATIVE(f_old - f + std::numeric_limits < sgl::numeric > ::epsilon());
+			ASSERT_IS_NON_NEGATIVE(f_old - f + 1e3*std::numeric_limits < sgl::numeric > ::epsilon());
 
 			gradient = objective.gradient();
 
@@ -583,7 +583,7 @@ void SglOptimizer < SGL >::optimize_inner(sgl::vector const& gradient_at_x0,
 	sgl::vector gradient = gradient_at_x0;
 	x = x0; //start at x0
 
-	sgl::numeric sumsq = as_scalar(sum(square(x)));
+    sgl::numeric sumsq = arma::as_scalar(sum(square(x)));
 	sgl::parameter_block_vector x_old(dim);
 
 	do
