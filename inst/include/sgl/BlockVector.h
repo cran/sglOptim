@@ -1,15 +1,24 @@
 /*
- * BlockVector.h
- *
- *  Created on: Mar 10, 2013
- *      Author: martin
- */
+	Sgl template library for optimizing sparse group lasso penalized objectives.
+    Copyright (C) 2014 Martin Vincent
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>
+*/
 
 #ifndef BLOCKVECTOR_H_
 #define BLOCKVECTOR_H_
 
-//FIXME REMOVE
-//static int bv_count = 0;
 
 template<typename MATRIX, typename VECTOR>
   class BlockVector
@@ -42,7 +51,6 @@ template<typename MATRIX, typename VECTOR>
 
     BlockVector<MATRIX, VECTOR>(MATRIX const& source,
         const sgl::DimConfig & dim);
-    //BlockVector<MATRIX, VECTOR>(MATRIX const& source);
 
     void
     set_dim(sgl::DimConfig const& dim);
@@ -71,11 +79,6 @@ template<typename MATRIX, typename VECTOR>
     operator MATRIX const&() const
     {
       return matrix;
-    }
-
-    operator arma::mat const() const
-    {
-      return static_cast<arma::mat>(matrix);
     }
 
     MATRIX const&
@@ -156,18 +159,6 @@ template<typename MATRIX, typename VECTOR>
     const_cast<arma::u32&>(this->n_nonzero_blocks) = nonzero_blocks;
 
   }
-
-//template<typename MATRIX, typename VECTOR>
-//  inline
-//  BlockVector<MATRIX, VECTOR>::BlockVector(const MATRIX & source) :
-//      matrix(source), block_pos(
-//          compute_block_pos(matrix.n_rows,
-//              ones < arma::uvec > (source.n_cols))), blocks(block_pos.n_elem-1), block_sizes(
-//          ones < arma::uvec > (source.n_cols)), n_blocks(source.n_cols), n_elem(
-//          source.n_elem), n_nonzero(source.n_nonzero), n_nonzero_blocks(
-//          nonzero_cols(source))
-//  {
-//  }
 
 template<typename MATRIX, typename VECTOR>
   inline void

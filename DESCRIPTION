@@ -1,7 +1,7 @@
 Package: sglOptim
 Type: Package
 Title: Sparse group lasso generic optimizer
-Version: 0.0.100
+Version: 0.0.105
 Date: 2014-22-02
 Author: Martin Vincent
 Maintainer: Martin Vincent <vincent@math.ku.dk>
@@ -19,7 +19,7 @@ Depends: R (>= 3.0.0), Matrix,
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo, BH
 Collate: 'lambda_sequence.R' 'prepare_args.R' 'sgl_fit.R'
         'sgl_config.R' 'sgl_predict.R' 'sgl_cv.R' 'sgl_subsampling.R'
-Packaged: 2014-03-05 19:08:14 UTC; martin
+Packaged: 2014-03-10 15:14:51 UTC; martin
 NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2014-03-05 21:16:35
+Date/Publication: 2014-03-10 22:20:23
