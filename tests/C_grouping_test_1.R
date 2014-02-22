@@ -7,12 +7,12 @@ grp <- test.data$grp
 
 weights <- rep(1/nrow(x), nrow(x))
 sampleGrouping <- grp
-covariateGrouping <- factor(1:ncol(x))
+covariateGrouping <- factor(1:ncol(x) %% 10)
 groupWeights <- c(sqrt(length(levels(sampleGrouping))*table(covariateGrouping)))
 parameterWeights <-  matrix(1, nrow = length(levels(sampleGrouping)), ncol = ncol(x))
-alpha <- 0.5
+alpha <- 0
 d <- 50L
-lambda.min <- 0.5
+lambda.min <- 2
 algorithm.config <- sgl.standard.config 
 
 # create data
@@ -32,6 +32,3 @@ res1b <- sgl_predict("sgl_test_sparse", "sglOptim", fit1b, data)
 
 if(max(abs(fit1a$beta[[25]]-fit1b$beta[[25]])) > 1e-7) stop()
 if(max(abs(res1a$link[[25]]-res1b$link[[25]])) > 1e-7) stop()
-
-
-	
