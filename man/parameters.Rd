@@ -1,0 +1,22 @@
+\name{parameters}
+\alias{parameters}
+\title{Generic function for extracting nonzero parameters}
+\usage{
+  parameters(object, ...)
+}
+\arguments{
+  \item{object}{an object}
+
+  \item{...}{additional paramters (optional)}
+}
+\value{
+  a list of length \code{nmod(x)} containing the nonzero
+  parameters of the models.
+}
+\description{
+  Extracts nonzero parameters for each model.
+}
+\author{
+  Martin Vincent
+}
+

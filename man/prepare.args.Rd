@@ -1,33 +1,52 @@
 \name{prepare.args}
 \alias{prepare.args}
-\title{Prepare sgl function arguments}
+\title{Generic function for preparing the sgl call arguments}
 \usage{
-  prepare.args(data, parameterGrouping, groupWeights,
-    parameterWeights, alpha)
+  prepare.args(data, ...)
 }
 \arguments{
-  \item{data}{sgldata object}
+  \item{data}{a data object}
 
-  \item{parameterGrouping}{grouping of parameters, a vector
-  of length \eqn{p}. Each element of the vector specifying
-  the group of the parameters in the corresponding column
-  of \eqn{\beta}.}
-
-  \item{groupWeights}{the group weights, a vector of length
-  \code{length(unique(parameterGrouping))} (the number of
-  groups).}
-
-  \item{parameterWeights}{a matrix of size \eqn{q \times
-  p}.}
-
-  \item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1
-  for lasso, between 0 and 1 gives a sparse group lasso
-  penalty.}
+  \item{...}{additional parameters}
+}
+\value{
+  \item{block.dim}{a vector of length \eqn{m}, containing
+  the dimensions \eqn{d_J} of the groups (i.e. the number
+  of parameters in the groups)} \item{groupWeights}{a
+  vector of length \eqn{m}, containing the group weights}
+  \item{parameterWeights}{a matrix of dimension \eqn{q
+  \times p}, containing the parameter weights}
+  \item{alpha}{the \eqn{\alpha} value} \item{data}{the data
+  parsed to the loss module} \item{group.order}{original
+  order of the columns of \eqn{\beta}. Before sgl routines
+  return \eqn{\beta} will be reorganized according to this
+  order.}
 }
 \description{
-  Prepare sgl function arguments
+  Compute and prepare the sgl call arguments for the
+  objective function
+  \deqn{\mathrm{loss}(\mathrm{data})(\beta) + \lambda
+  \left( (1-\alpha) \sum_{J=1}^m \gamma_J \|\beta^{(J)}\|_2
+  + \alpha \sum_{i=1}^{n} \xi_i |\beta_i| \right)} where
+  \eqn{\mathrm{loss}} is a loss/objective function. The
+  \eqn{n} parameters are organized in the parameter matrix
+  \eqn{\beta} with dimension \eqn{q\times p}. The vector
+  \eqn{\beta^{(J)}} denotes the \eqn{J} parameter group,
+  the dimension of \eqn{\beta^{(J)}} is denote by
+  \eqn{d_J}. The dimensions \eqn{d_J} must be multiple of
+  \eqn{q}, and \eqn{\beta = (\beta^{(1)} \cdots
+  \beta^{(m)})}. The group weights \eqn{\gamma \in
+  [0,\infty)^m} and the parameter weights \eqn{\xi \in
+  [0,\infty)^{qp}}.
 }
 \author{
   Martin Vincent
+}
+\seealso{
+  prepare.args.sgldata
+
+  Other sgldata: \code{\link{create.sgldata}},
+  \code{\link{prepare.args.sgldata}},
+  \code{\link{rearrange.sgldata}}
 }
 

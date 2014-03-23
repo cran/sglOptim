@@ -16,6 +16,12 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>
  */
 
+//Uncomment to turn on debuging
+//#undef NDEBUG
+
+//Should the timers be activated (only needed for profiling the code)
+//#define SGL_TIMING
+
 //Configuration
 //Debugging
 #ifndef NDEBUG
@@ -34,9 +40,6 @@
 //Exception handling
 #define SGL_CATCH_EXCEPTIONS
 
-//Should the timers be activated (only needed for profiling the code)
-//#define SGL_TIMING
-
 //Sgl optimizer
 #include <sgl.h>
 
@@ -53,7 +56,6 @@
 #define MODULE_NAME sgl_test_dense
 
 #define OBJECTIVE linear_test
-#define DATA sgl::WeightedResponseGroupedMatrixData < sgl::matrix , sgl::vector >
 
 #include <sgl/RInterface/sgl_lambda_seq.h>
 #include <sgl/RInterface/sgl_fit.h>
@@ -71,14 +73,12 @@
 // Reset macros
 #undef MODULE_NAME
 #undef OBJECTIVE
-#undef DATA
 #undef PREDICTOR
 
 // Module name
 #define MODULE_NAME sgl_test_sparse
 
 #define OBJECTIVE linear_test_spx
-#define DATA sgl::WeightedResponseGroupedMatrixData < sgl::sparse_matrix , sgl::vector >
 
 #include <sgl/RInterface/sgl_lambda_seq.h>
 #include <sgl/RInterface/sgl_fit.h>

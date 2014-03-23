@@ -1,0 +1,22 @@
+\name{features.sgl}
+\alias{features.sgl}
+\title{Extracting nonzero features}
+\usage{
+  \method{features}{sgl} (object, ...)
+}
+\arguments{
+  \item{object}{a sgl object}
+
+  \item{...}{not used}
+}
+\value{
+  a list of vectors containing the nonzero features (that
+  is nonzero columns of the \eqn{beta} matrices)
+}
+\description{
+  Extracting nonzero features
+}
+\author{
+  Martin Vincent
+}
+

@@ -1,0 +1,25 @@
+\name{models}
+\alias{models}
+\title{Generic function for extracting the fitted models}
+\usage{
+  models(object, index, ...)
+}
+\arguments{
+  \item{object}{an object}
+
+  \item{index}{a vector of indices of the models to be
+  returned}
+
+  \item{...}{additional parameters (optional)}
+}
+\value{
+  a list of length \code{length(index)} containing the
+  models
+}
+\description{
+  Returns the fitted models
+}
+\author{
+  Martin Vincent
+}
+
