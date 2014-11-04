@@ -1,4 +1,4 @@
-922ffab97a2e3aeb05995b823d6d8583 *DESCRIPTION
+82204a168c26ff430e4eab5de35323dd *DESCRIPTION
 fc203ae4ac4e08632a32600d549f0b9a *NAMESPACE
 551bb4cf16bc1c2d9224182a5e0b0653 *R/lambda_sequence.R
 cb430c071d6df21d521a4339e24825bc *R/prepare_args.R
@@ -15,7 +15,7 @@ d0522ef68074ec217453f7e669a3a8c6 *inst/include/rtools.h
 f2f21473417ced1e2e63c310ae4d6122 *inst/include/rtools/rList.h
 6f72829b5b5fc633ff64ed0beabc7509 *inst/include/rtools/rObject_decl.h
 7a515d0a826927703d0f1eab61152c23 *inst/include/rtools/rObject_def.h
-53275d4fcb05097d96b48f903219bfb6 *inst/include/sgl.h
+07fbaaffc721ed0e3ca98c03fe4db9fc *inst/include/sgl.h
 de985f91dff22cacda3477dbc916f77f *inst/include/sgl/AlgorithmConfigurationDefault.h
 355ade5d8049af3b152c9808dae478e3 *inst/include/sgl/BlockVector.h
 34b1bbc03ef5ffcc4adddd588d64633b *inst/include/sgl/DimConfig.h
@@ -66,7 +66,7 @@ cbf41d2b8f3e511bd7acc366cdce5198 *man/sgl_predict.Rd
 79cc35408707afce43c5fa006982c3af *man/sgl_subsampling.Rd
 0a381b9fdf0ce691a3b8822af2856e59 *man/test.data.Rd
 a2a3a5b919d1ffa1f2715eacdb0e15ba *src/Makevars
-eb6b5a2dc51058287664fd0f27f38ec5 *src/only_for_testing.cpp
+7b839003effca4717fa861e79c9e3d79 *src/only_for_testing.cpp
 28fb76d301e78263623f701377277aa9 *src/test_objective.h
 abff295937d58e6dfdc20f747cf3fbf9 *tests/A_lambda_sequence_test.R
 65b74fb01d51a4a411c904cb838abca1 *tests/B_fit_test_1.R

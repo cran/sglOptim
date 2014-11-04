@@ -111,13 +111,11 @@ void R_init_sglOptim(DllInfo *info)
 {
 	// Print warnings
 #ifndef SGL_OPENMP_SUPP
-	Rcout << "SglOptim warning: openmp (multithreading) not supported on this system" << std::endl;
+	Rf_warning("sglOptim does not support multithreading on this system");
 #endif
 
 #ifdef SGL_DEBUG
-	Rcout
-			<< "SglOptim warning: compiled with debugging on -- this may slow down the runtime of the sgl routines"
-			<< std::endl;
+	Rf_warning("Compiled with debugging on -- this may slow down the runtime of the sgl routines");
 #endif
 
 // Register the .Call routines.
