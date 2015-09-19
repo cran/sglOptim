@@ -30,9 +30,17 @@
 #' \item{responses}{content will depend on the C++ response class}
 #' \item{lambda}{the lambda sequence used.}
 #' @author Martin Vincent
+#' @useDynLib sglOptim, .registration=TRUE
+#' @importFrom utils packageVersion
+#' @importFrom methods as
 #' @export
 sgl_predict <- function(module_name, PACKAGE, object, data, ...) {
 
+	# sparse X format
+	if(data$sparseX) {
+		data$X <- list(dim(data$X), data$X@p, data$X@i, data$X@x)
+	}
+	
 	if("beta" %in% names(object)) {
 
 		beta <- lapply(X = object$beta, FUN = function(m) as(m, "CsparseMatrix"))

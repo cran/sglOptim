@@ -46,12 +46,14 @@
 #' \item{parameters}{number of parameters used in the models}
 #' \item{lambda}{the lambda sequence used.}
 #' @author Martin Vincent
+#' @useDynLib sglOptim, .registration=TRUE
+#' @importFrom utils packageVersion
 #' @export
 sgl_subsampling <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, training, test, collapse = FALSE, max.threads = 2, algorithm.config = sgl.standard.config) {
 	
 	# cast
 	max.threads <- as.integer(max.threads)
-	
+		
 	#Check training and test consistency:
 	if(!is.list(training) | !is.list(test)) {
 		stop("The arguments traning and test should be lists")

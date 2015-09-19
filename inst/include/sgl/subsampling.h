@@ -46,16 +46,11 @@ for (int i = 0; i < static_cast<int>(n_subsamples); i++) {
 
 		try {
 
-			ObjectiveFunctionType traning_objective; //Note traning_objective stores the X matrix
-			typename ObjectiveFunctionType::data_type test_data;
+			//TODO a more memory efficient impl
+			typename ObjectiveFunctionType::data_type subdata(objective_type.data.subdata(training_samples(i)));
+			typename ObjectiveFunctionType::data_type test_data(objective_type.data.subdata(test_samples(i)));
 
-#ifdef SGL_USE_OPENMP
-#pragma omp critical
-#endif
-			{
-				traning_objective.set_data(objective_type.data.subdata(training_samples(i)));
-				test_data = objective_type.data.subdata(test_samples(i));
-			}
+			ObjectiveFunctionType traning_objective(subdata);
 
 			typename ObjectiveFunctionType::instance_type objective(
 					traning_objective.create_instance(sgl.setup));

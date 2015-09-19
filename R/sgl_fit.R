@@ -46,7 +46,8 @@
 #' \item{lambda}{the lambda values used.}
 #' @author Martin Vincent
 #' @export
-#' @useDynLib sglOptim .registration=TRUE
+#' @useDynLib sglOptim, .registration=TRUE
+#' @importFrom utils packageVersion
 #' @import Matrix
 sgl_fit <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, return = 1:length(lambda), algorithm.config = sgl.standard.config) {
 	
@@ -60,12 +61,12 @@ sgl_fit <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights,
 
 	## Create R sparse matrix
 	res$beta <- lapply(1:length(res$beta), function(i) sparseMatrix(p = res$beta[[i]][[2]], i = res$beta[[i]][[3]], x = res$beta[[i]][[4]], dims = res$beta[[i]][[1]], index1 = FALSE))
-	
-	# Restore org order
-	res$beta <- lapply(res$beta, function(x) x[, order(args$group.order)])
 
 	# Dim names
-	res$beta <- lapply(res$beta, function(x) { dimnames(x) <- list(data$group.names, data$covariate.names); x })
+	res$beta <- lapply(res$beta, function(x) { dimnames(x) <- list(args$data$group.names, args$data$covariate.names); x })
+	
+	# Restore org order
+	res$beta <- lapply(res$beta, function(x) x[, order(args$group.order), drop = FALSE])
 	
 	res$nmod <- length(res$beta)
 	
@@ -76,3 +77,4 @@ sgl_fit <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights,
 	
 	return(res)
 }
+

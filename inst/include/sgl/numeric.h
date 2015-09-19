@@ -21,8 +21,19 @@
 #ifndef NUMERIC_H_
 #define NUMERIC_H_
 
+//Forward declarations
+
 template<typename MATRIX, typename VECTOR>
-  class BlockVector;
+class BlockVector;
+
+template<typename E, typename F>
+class kron_prod;
+
+template<typename E1, typename E2, typename E3>
+class triple_kron_prod;
+
+//index
+typedef arma::uword index;
 
 //Natural types
 typedef arma::uword natural;
@@ -62,6 +73,10 @@ typedef arma::field<block_vector> block_vector_field;
 typedef sparse_vector parameter_block;
 typedef block_vector parameter;
 typedef block_vector_field parameter_field;
+
+//Kronecker product types
+typedef kron_prod<sgl::matrix, sgl::matrix> dual_kronecker_matrix;
+typedef triple_kron_prod<sgl::matrix, sgl::matrix, sgl::matrix> triple_kronecker_matrix;
 
 //Null vectors
 
@@ -223,6 +238,22 @@ bool inline is_finite(matrix const& x) {
         return arma::is_finite(x);
 }
 
+template<typename T>
+inline sgl::vector colSumsSquare(T const& x) {
+	sgl::vector r(trans(sum(square(x))));
+	return  r;
+}
+
+template<typename E, typename F>
+sgl::vector colSumsSquare(kron_prod<E, F> const& x) {
+	return x.colSumsSquare();
+}
+
+template<typename E1, typename E2, typename E3>
+sgl::vector colSumsSquare(triple_kron_prod<E1, E2, E3> const& x) {
+	return x.colSumsSquare();
+}
+
 //Sguare function
 
 natural inline square(natural const& x) {
@@ -250,6 +281,26 @@ template<typename T>
 T seq(natural size, typename T::elem_type start, typename T::elem_type jump_size) {
 	T s(size);
 	return seq(s, start, jump_size);
+}
+
+template<typename T>
+T min(T const& a, T const& b) {
+
+	if(a < b) {
+		return a;
+	}
+
+	return b;
+}
+
+template<typename T>
+T max(T const& a, T const& b) {
+
+	if(a > b) {
+		return a;
+	}
+
+	return b;
 }
 
 #endif /* NUMERIC_H_ */

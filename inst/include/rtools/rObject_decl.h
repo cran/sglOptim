@@ -46,6 +46,7 @@ public:
 
 	rObject(arma::u32 value);
 	rObject(double value);
+	rObject(bool value);
 
 	rObject(arma::Mat<double> const& m);
 	rObject(arma::Mat<arma::u32> const& m);
@@ -54,6 +55,14 @@ public:
     rObject(arma::Col<arma::u32> const& v);
 
 	rObject(arma::sp_mat const& m);
+
+
+#ifdef ARMA_64BIT_WORD
+	rObject(arma::u64 value);
+    rObject(arma::s64 value);
+    rObject(arma::Col<arma::u64> const& v);
+    rObject(arma::Mat<arma::u64> const& m);
+#endif
 
 	template<typename T>
 	rObject(arma::field<T> const& field);

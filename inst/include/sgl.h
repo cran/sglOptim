@@ -40,7 +40,6 @@
 //#define SGL_DEBUG_SIMPLE
 //#define SGL_DEBUG_COMPLEX
 //#define SGL_DEBUG_INFO_ALL
-//#define PRINT_BACKTRACE //FIXME
 //#define SGL_DEBUG_INFO_STEPSIZE
 #else
 // Do no debugging
@@ -48,10 +47,8 @@
 #define NDEBUG
 #endif
 
-//Backtrace will only work if install on system
-#ifdef PRINT_BACKTRACE
-#include <Backtrace.h>
-#endif
+//Support for xl matrices
+//#define ARMA_64BIT_WORD
 
 // Due to some unknown issues with the sgloptim code multithreading is currently not working on sparc
 // Switching off openmp on sparc
@@ -64,7 +61,7 @@
 //Should openmp be used
 #ifndef _OPENMP
 //No openmp
-//Multithreading not supported on this system - compiling without openmp support
+//openmp (multithreading) not supported on this system - compiling without openmp support
 #else
 //Use openmp
 #define SGL_OPENMP_SUPP
@@ -98,17 +95,17 @@ using boost::tuple;
 namespace sgl {
 #include "sgl/numeric.h"
 #include "sgl/config.h"
-#include "sgl/AlgorithmConfigurationDefault.h"
-#include "sgl/DimConfig.h"
-#include "sgl/BlockVector.h"
-#include "sgl/SglProblem.h"
-#include "sgl/SglOptimizer.h"
-#include "sgl/ObjectiveFunction.h"
-#include "sgl/ObjectiveFunctionExpressionType.h"
+#include "sgl/algorithm_config.h"
+#include "sgl/dim_config.h"
+#include "sgl/block_vector.h"
+#include "sgl/sgl_problem.h"
+#include "sgl/sgl_optimizer.h"
+#include "sgl/objective_function_type.h"
 #include "sgl/interface_basic.h"
 #include "sgl/objective/sgl_matrix_data.h"
-#include "sgl/objective/sgl_gl_loss.h"
-#include "sgl/objective/sgl_algorithm_config.h"
+#include "sgl/objective/sgl_gl_loss_base.h"
+#include "sgl/objective/sgl_gl_loss_dense.h"
+#include "sgl/objective/sgl_gl_loss_sparse.h"
 #include "sgl/objective/simplifier.h"
 #include "sgl/objective/linear_response.h"
 #include "sgl/objective/linear_predictor.h"

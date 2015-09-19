@@ -45,10 +45,11 @@
 
 //Objective
 #include "test_objective.h" //linear objective
+#include "pkg_c_config.h"
 
 /**********************************
  *
- *  lsgl dense module
+ *  Dense test module
  *
  *********************************/
 
@@ -67,7 +68,7 @@
 
 /*********************************
  *
- *  lsgl sparse module
+ *  Sparse test module
  *
  *********************************/
 // Reset macros
@@ -109,15 +110,6 @@ extern "C" {
 
 void R_init_sglOptim(DllInfo *info)
 {
-	// Print warnings
-#ifndef SGL_OPENMP_SUPP
-	Rf_warning("sglOptim does not support multithreading on this system");
-#endif
-
-#ifdef SGL_DEBUG
-	Rf_warning("Compiled with debugging on -- this may slow down the runtime of the sgl routines");
-#endif
-
-// Register the .Call routines.
+	// Register the .Call routines.
 	R_registerRoutines(info, NULL, sglCallMethods, NULL, NULL);
 }

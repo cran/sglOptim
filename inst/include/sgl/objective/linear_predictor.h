@@ -57,11 +57,12 @@ private:
 
 		arma::field < response_type > response(n_samples);
 
-		sgl::matrix lp(X);
-		lp = beta * trans(lp);
+		sgl::matrix lp(X * trans(beta));
+		lp = trans(lp);
 
 		for (sgl::natural i = 0; i < n_samples; ++i)
 		{
+			//TODO compute cols one at a time, to save mem use
 			response(i) = response_type(static_cast < sgl::vector >(lp.col(i)));
 		}
 

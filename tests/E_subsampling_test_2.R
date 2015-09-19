@@ -1,4 +1,6 @@
 library(sglOptim)
+# warnings = errors
+options(warn=2)
 
 data(TestData)
 x <- test.data$x

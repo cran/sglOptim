@@ -39,15 +39,19 @@
 #' @author Martin Vincent
 #' @export
 #' @import Matrix
-sgl_lambda_sequence <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha = 0.5, d = 100, lambda.min, algorithm.config = sgl.standard.config) {
+sgl_lambda_sequence <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, d, lambda.min, algorithm.config = sgl.standard.config) {
+	
+	if(lambda.min <= 0) stop("lambda.min should be larger than zero")
 	
 	# cast
 	d <- as.integer(d)
 		
 	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
-	
+		
 	call_sym <- paste(module_name, "sgl_lambda", sep="_")
 	res <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, args$alpha, d, lambda.min, algorithm.config)
+	
+	if(res[1] < res[length(res)]) stop(paste("lamdba.min should be smaller than lambda.max (=", round(res[1],4),")", sep=""))
 	
 	return(res)
 }

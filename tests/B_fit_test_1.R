@@ -1,5 +1,8 @@
 library(sglOptim)
 
+# warnings = errors
+options(warn=2)
+
 data(TestData)
 x <- test.data$x
 y <- test.data$y
@@ -30,8 +33,8 @@ fit1b <- sgl_fit("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWe
 res1b <- sgl_predict("sgl_test_sparse", "sglOptim", fit1b, data)
 
 
-if(max(abs(fit1a$beta[[25]]-fit1b$beta[[25]])) > 1e-7) stop()
-if(max(abs(res1a$responses$link[[25]]-res1b$responses$link[[25]])) > 1e-7) stop()
+if(max(abs(fit1a$beta[[25]]-fit1b$beta[[25]])) > 1e-5) stop()
+if(max(abs(res1a$responses$link[[25]]-res1b$responses$link[[25]])) > 1e-5) stop()
 
 # Simple navigate tests
 

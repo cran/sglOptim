@@ -44,6 +44,7 @@
 #' \item{parameters}{number of parameters used in the models}
 #' \item{lambda}{the lambda sequence used.}
 #' @author Martin Vincent
+#' @importFrom utils packageVersion
 #' @export
 sgl_cv <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, fold = 2, cv.indices = list(), max.threads = 2, algorithm.config = sgl.standard.config) {
 	
