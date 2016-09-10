@@ -26,12 +26,6 @@
 template<typename MATRIX, typename VECTOR>
 class BlockVector;
 
-template<typename E, typename F>
-class kron_prod;
-
-template<typename E1, typename E2, typename E3>
-class triple_kron_prod;
-
 //index
 typedef arma::uword index;
 
@@ -41,13 +35,6 @@ typedef arma::Col<natural> natural_vector;
 typedef arma::Mat<natural> natural_matrix;
 typedef arma::field<natural_vector> natural_vector_field;
 typedef arma::field<natural_matrix> natural_matrix_field;
-
-//Integer types
-//TODO refactor name
-typedef arma::s32 integere;
-typedef arma::Col<integere> integere_vector;
-typedef arma::Mat<integere> integere_matrix;
-typedef arma::field<integere_vector> integere_vector_field;
 
 //Numeric types
 typedef double numeric;
@@ -74,15 +61,11 @@ typedef sparse_vector parameter_block;
 typedef block_vector parameter;
 typedef block_vector_field parameter_field;
 
-//Kronecker product types
-typedef kron_prod<sgl::matrix, sgl::matrix> dual_kronecker_matrix;
-typedef triple_kron_prod<sgl::matrix, sgl::matrix, sgl::matrix> triple_kronecker_matrix;
-
 //Null vectors
-
 static const natural_vector null_natural_vector;
 static const vector null_vector;
 static const matrix null_matrix;
+static const sparse_matrix null_sparse_matrix;
 
 //Number of non zero elements
 
@@ -220,7 +203,7 @@ bool inline is_finite(T const& x) {
 
 template<>
 bool inline is_finite(double const& x) {
-        return !boost::math::isnan(x) || !boost::math::isinf(x);
+        return (! std::isnan(x)) && (! std::isinf(x));
 }
 
 template<>
@@ -238,20 +221,16 @@ bool inline is_finite(matrix const& x) {
         return arma::is_finite(x);
 }
 
+template<>
+bool inline is_finite(sparse_matrix const& x) {
+        return arma::is_finite(x);
+}
+
+
 template<typename T>
 inline sgl::vector colSumsSquare(T const& x) {
 	sgl::vector r(trans(sum(square(x))));
 	return  r;
-}
-
-template<typename E, typename F>
-sgl::vector colSumsSquare(kron_prod<E, F> const& x) {
-	return x.colSumsSquare();
-}
-
-template<typename E1, typename E2, typename E3>
-sgl::vector colSumsSquare(triple_kron_prod<E1, E2, E3> const& x) {
-	return x.colSumsSquare();
 }
 
 //Sguare function

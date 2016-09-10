@@ -210,36 +210,21 @@ template<class E, class F>
 
   }
 
-template<typename R, typename T>
-  arma::field<R>
-  conv(arma::field<T> const& source)
-  {
-
-    arma::field<R> target(source.n_elem);
-
-    for (arma::u32 i = 0; i < source.n_elem; ++i)
-      {
-        target(i) = source(i);
-      }
-
-    return target;
-  }
-
-//TODO overlap with conv
-template<typename R, typename T>
-  arma::field<R>
-  field_cast(arma::field<T> const& source)
-  {
-
-    arma::field<R> target(source.n_elem);
-
-    for (arma::u32 i = 0; i < source.n_elem; ++i)
-      {
-        target(i) = static_cast<R>(source(i));
-      }
-
-    return target;
-  }
+//TODO remove
+// template<typename R, typename T>
+//   arma::field<R>
+//   conv(arma::field<T> const& source)
+//   {
+//
+//     arma::field<R> target(source.n_elem);
+//
+//     for (arma::u32 i = 0; i < source.n_elem; ++i)
+//       {
+//         target(i) = source(i);
+//       }
+//
+//     return target;
+//   }
 
 
 #endif /* ARMA_ADDITIONS_H_ */

@@ -19,6 +19,8 @@
 #ifndef SGLPROBLEM_H_
 #define SGLPROBLEM_H_
 
+//TODO clean up together with sgl_optimizer.h + comment and doc functions
+
 class SglProblem
   {
 
@@ -106,11 +108,11 @@ sgl::numeric SglProblem::discrete_dist(sgl::parameter const& x0, sgl::parameter 
 }
 
 
-inline bool
-  SglProblem::is_block_active(const sgl::vector & block_gradient,
-      sgl::natural const block_index, sgl::numeric const alpha,
-      sgl::numeric const lambda) const
-  {
+inline bool SglProblem::is_block_active(
+  const sgl::vector & block_gradient,
+  sgl::natural const block_index,
+  sgl::numeric const alpha,
+  sgl::numeric const lambda) const {
 
     double const p = sgl::square(lambda * (1 - alpha) * setup.L2_penalty_weight(block_index));
 
@@ -119,24 +121,21 @@ inline bool
     sgl::vector::const_iterator bg = block_gradient.begin();
     sgl::vector::const_iterator pw = setup.L1_penalty_weight_block_begin(block_index);
 
-    for (; bg != block_gradient.end(); ++bg, ++pw)
-      {
+    for (; bg != block_gradient.end(); ++bg, ++pw) {
 
         double c = abs(*bg) - lambda * alpha * (*pw);
 
-        if (c > 0)
-          {
+        if (c > 0)  {
             s += sgl::square(c);
-          }
+        }
 
-        if (s > p)
-          {
+        if (s > p) {
             return true;
-          }
-      }
+        }
+    }
 
     return false;
-  }
+}
 
 sgl::numeric
   SglProblem::penalty(sgl::parameter const& x, sgl::numeric const alpha,
@@ -239,9 +238,12 @@ sgl::numeric SglProblem::compute_critical_lambda(const sgl::vector & gradient, s
                 	continue;
                 }
 
-                sgl::numeric tmp = compute_critical_lambda(alpha * setup.L1_penalty_weight(block_index), abs(gradient.rows(block_start, block_end)),
-                                sgl::square((1 - alpha) * setup.L2_penalty_weight(block_index)));
+                //Only use penalized parameters
+                sgl::vector weights_L1(setup.L1_penalty_weight(block_index));
+                sgl::vector grad(gradient.rows(block_start, block_end));
 
+                sgl::numeric tmp = compute_critical_lambda(alpha * weights_L1(find(weights_L1)), abs(grad(find(weights_L1))),
+                                sgl::square((1 - alpha) * setup.L2_penalty_weight(block_index)));
 
                 if (tmp > lambda) {
                         lambda = tmp;
@@ -315,7 +317,7 @@ sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
 
         sgl::numeric q1 = 0;
         sgl::numeric q2 = 0;
-        sgl::numeric q3 = 0;
+        sgl::numeric q3 = -b;
 
         if (b == 0) {
                 return sgl::pos(-a(0));
@@ -334,7 +336,7 @@ sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
 
         }
 
-        if (q3 > b) {
+        if (q3 > 0) {
                 return 0;
         }
 
@@ -344,11 +346,11 @@ sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
 
                 sgl::numeric x = sgl::pos(-a(i));
 
-                if (q1 * sgl::square(x) + 2 * q2 * x + q3 > b) {
+                if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
 
                         x = sgl::pos(-a(i - 1));
 
-                        if (q1 * sgl::square(x) + 2 * q2 * x + q3 > b) {
+                        if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
                                 r = x;
                                 break;
                         }
@@ -365,15 +367,14 @@ sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
         if (r == -1) {
             //If not computed -> compute r
 
-            if(q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * (q3 - b))) == 0) {
+            if(q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)) == 0) {
                 r = std::numeric_limits<double>::infinity();
             }
 
             else {
-                r = -(q3 - b) / (q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * (q3 - b))));
+                r = -q3/ (q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)));
             }
         }
-
 
         ASSERT_IS_NUMBER(r);
         ASSERT_IS_NON_NEGATIVE(r);

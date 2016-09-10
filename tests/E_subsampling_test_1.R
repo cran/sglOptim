@@ -27,3 +27,9 @@ fit1a.sub <- sgl_subsampling("sgl_test_dense", "sglOptim", data, covariateGroupi
 
 data <- create.sgldata(x, y, weights, sampleGrouping, sparseX = TRUE)
 fit1b.sub <- sgl_subsampling("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test, max.threads = 1L)
+
+# Simple navigate tests
+
+nmod(fit1a.sub)
+features_stat(fit1a.sub)
+parameters_stat(fit1a.sub)

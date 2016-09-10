@@ -22,14 +22,14 @@
 template<typename type>
 static type getConfigAttribute(rList const& config, std::string const& name) {
 
-	int index;
-	if (index = config.getIndex(name), index >= 0) {
+	int index = config.getIndex(name);
+	if (index >= 0) {
 
 		return get_value < type > (config.get(index));
 
 	} else {
 
-        std::string msg = "Missing configuration parameter : ";
+    std::string msg = "Missing configuration parameter : ";
 		throw std::domain_error(msg.append(name).c_str());
 		return type(); //avoid compiler warnings
 	}

@@ -2,8 +2,6 @@
 ### Test with q=1 (each feature has one parameter)
 ###
 
-#TODO add test for alpha = 0.5 and 1
-
 library(sglOptim)
 
 # warnings = errors
@@ -22,7 +20,7 @@ parameterWeights <-  matrix(1, nrow = length(levels(sampleGrouping)), ncol = nco
 alpha <- 0
 d <- 50L
 lambda.min <- 1.3
-algorithm.config <- sgl.standard.config 
+algorithm.config <- sgl.standard.config
 
 # create data
 data <- create.sgldata(x, y, weights, sampleGrouping)

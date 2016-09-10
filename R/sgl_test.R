@@ -1,6 +1,6 @@
-#
+
 #     Description of this R script:
-#     R interface to routine for computing a lambda sequence for the regularization path
+#     R interface rotine for testing a sgl objective
 #
 #     Intended for use with R.
 #     Copyright (C) 2014 Martin Vincent
@@ -19,11 +19,10 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-
-#' Generic routine for computing a lambda sequence for the regularization path
-#'
-#' Computes a decreasing lambda sequence of length \code{d}.
-#' The sequence ranges from a data determined maximal lambda \eqn{\lambda_\textrm{max}} to the user inputed \code{lambda.min}.
+#' @title Test a sgl-Objective
+#' @description
+#' This function will run tests on the gradient and hessian functions implemented in a C++ objective module.
+#' Detected problems will be printed to the console.'
 #'
 #' @param module_name reference to objective specific C++ routines.
 #' @param PACKAGE name of the calling package.
@@ -31,38 +30,22 @@
 #' @param parameterGrouping grouping of parameters, a vector of length \eqn{p}. Each element of the vector specifying the group of the parameters in the corresponding column of \eqn{\beta}.
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}.
-#' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
-#' @param d the length of lambda sequence.
-#' @param lambda.min the smallest lambda value in the computed sequence.
-#' @param lambda.min.rel is lambda.min relative to lambda.max (i.e. actual lambda min used is \code{lambda.min*lambda.max}, with \code{lambda.max} the computed maximal lambda value)
 #' @param algorithm.config the algorithm configuration to be used.
-#' @return a vector of length \code{d} containing the compute lambda sequence.
+#' @return The number of found problems
 #' @author Martin Vincent
 #' @export
+#' @useDynLib sglOptim, .registration=TRUE
+#' @importFrom utils packageVersion
 #' @import Matrix
-sgl_lambda_sequence <- function(
-	module_name,
-	PACKAGE,
-	data,
-	parameterGrouping,
-	groupWeights,
-	parameterWeights,
-	alpha,
-	d, lambda.min,
-	algorithm.config = sgl.standard.config,
-	lambda.min.rel = FALSE) {
+sgl_test <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, algorithm.config = sgl.standard.config) {
 
-	if(lambda.min <= 0) stop("lambda.min should be larger than zero")
-
-	# cast
-	d <- as.integer(d)
+  alpha <- 1
 
 	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
 
-	call_sym <- paste(module_name, "sgl_lambda", sep="_")
-	res <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, args$alpha, d, lambda.min, lambda.min.rel, algorithm.config)
+	call_sym <- paste(module_name, "sgl_test", sep="_")
+  problems <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, algorithm.config)
 
-	if(res[1] < res[length(res)]) stop(paste("lamdba.min should be smaller than lambda.max (=", round(res[1],4),")", sep=""))
+  return(problems)
 
-	return(res)
 }

@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
-#ifndef CONFIG_H_
-#define CONFIG_H_
+#ifndef ERROR_H_
+#define ERROR_H_
 
 //Error msg
 std::string numerical_error_msg("The algorithm has encountered a numerical problem\n   Try/check the following:\n   (1) Check the lambda sequence and try with a longer sequence (the length d should be larger than 100) \n   (2) try with a larger lambda.min\n   (3) Ensure minimum one sample from each group/class present in all subsample (or cross validation) sets used \n");
@@ -65,45 +65,34 @@ static bool sgl_interrupt = false;
 //Debug
 
 #ifdef SGL_RUNTIME_CHECKS
-//TODO templates should be used for this
-#define ASSERT_IS_FINITE(x) if(!sgl::is_finite(x)) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-#define ASSERT_IS_NUMBER(x) if(x != x) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-#define ASSERT_IS_POSITIVE(x) if(x <= 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-#define ASSERT_IS_NON_NEGATIVE(x) if(x < 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_FINITE(x) if(!sgl::is_finite(x)) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NUMBER(x) if(x != x) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_POSITIVE(x) if(x <= 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NON_NEGATIVE(x) if(x < 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
 #else
-#define ASSERT_IS_FINITE(x) //do nothing
-#define ASSERT_IS_NUMBER(x) //do nothing
-#define ASSERT_IS_POSITIVE(x) //do nothing
-#define ASSERT_IS_NON_NEGATIVE(x) //do nothing
+	#define ASSERT_IS_FINITE(x) //do nothing
+	#define ASSERT_IS_NUMBER(x) //do nothing
+	#define ASSERT_IS_POSITIVE(x) //do nothing
+	#define ASSERT_IS_NON_NEGATIVE(x) //do nothing
 #endif
 
 #ifdef SGL_DEBUG_SIMPLE
-//TODO templates should be used for this
-#define ASSERT_IS_ZERO(x) if(accu(x != 0) > 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-#define ASSERT_IS_NON_ZERO(x) if(accu(x != 0) == 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_ZERO(x) if(accu(x != 0) > 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NON_ZERO(x) if(accu(x != 0) == 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
 #else
-#define ASSERT_IS_ZERO(x) //do nothing
-#define ASSERT_IS_NON_ZERO(x) //do nothing
+	#define ASSERT_IS_ZERO(x) //do nothing
+	#define ASSERT_IS_NON_ZERO(x) //do nothing
 #endif
 
 #ifdef SGL_DEBUG_COMPLEX
-#define SGL_DEBUG_BLOCK_ACTIVE
-#define SGL_DEBUG_GB
+	#define SGL_DEBUG_BLOCK_ACTIVE
+	#define SGL_DEBUG_GB
 #endif
 
 #ifdef SGL_DEBUG_INFO_ALL
-#define SGL_DEBUG_INFO_GB_OPT
-#define SGL_DEBUG_INFO_ACTIVE_SET
-#define SGL_DEBUG_INFO_STEPSIZE
-#define SGL_DEBUG_INFO_QUADRATIC
-#define SGL_DEBUG_QUADRATIC_STOPPING
+	#define SGL_DEBUG_INFO_GB_OPT
+	#define SGL_DEBUG_INFO_STEPSIZE
+	#define SGL_DEBUG_INFO_QUADRATIC
 #endif
 
-#ifdef SGL_DEBUG_BLOCK_ACTIVE
-#define SGL_SHOW_HEAVY_DEBUG_WARNING
-#endif
-#ifdef SGL_DEBUG_GB
-#define SGL_SHOW_HEAVY_DEBUG_WARNING
-#endif
-
-#endif /* CONFIG_H_ */
+#endif /* ERROR_H_ */

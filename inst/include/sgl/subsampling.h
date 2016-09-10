@@ -23,16 +23,17 @@ sgl::natural n_subsamples = training_samples.n_elem;
 //Result matrix
 arma::field < arma::field<typename Predictor::response_type> > response_field_subsamples(n_subsamples);
 
-sgl::natural_matrix number_of_features(n_subsamples,
-		lambda_sequence.n_elem);
-sgl::natural_matrix number_of_parameters(n_subsamples,
-		lambda_sequence.n_elem);
+//length of lambda sequence
+sgl::index len_lambda = lambda_sequence(0).n_elem;
+
+sgl::natural_matrix number_of_features(n_subsamples, len_lambda);
+sgl::natural_matrix number_of_parameters(n_subsamples, len_lambda);
 
 bool exception_caught = false;
 std::string exception_msg;
 
 // create progress monitor
-Progress p(lambda_sequence.n_elem * n_subsamples, sgl.config.verbose);
+Progress p(len_lambda * n_subsamples, sgl.config.verbose);
 
 
 #ifdef SGL_USE_OPENMP
@@ -57,7 +58,7 @@ for (int i = 0; i < static_cast<int>(n_subsamples); i++) {
 
 			//Response field
 			arma::field<typename Predictor::response_type> response_field(
-					test_samples(i).size(), lambda_sequence.n_elem);
+					test_samples(i).size(), len_lambda);
 
 			//Fit
 			sgl::parameter x(sgl.setup);
@@ -75,18 +76,16 @@ for (int i = 0; i < static_cast<int>(n_subsamples); i++) {
 
 			while (true) {
 
-				sgl::numeric const lambda = lambda_sequence(lambda_index);
+				sgl::numeric const lambda = lambda_sequence(i)(lambda_index);
 
-				optimizer.optimize_single(x, x0, gradient, objective,
-						lambda);
+				optimizer.optimize_single(x, x0, gradient, objective,	lambda);
 
 				//set number of features / parameters
 				number_of_features(i, lambda_index) = x.n_nonzero_blocks;
 				number_of_parameters(i, lambda_index) = x.n_nonzero;
 
 				//Predict fold
-				response_field.col(lambda_index) = predictor.predict(
-						test_data, x);
+				response_field.col(lambda_index) = predictor.predict(test_data, x);
 
 				//next lambda
 				++lambda_index;
@@ -94,7 +93,7 @@ for (int i = 0; i < static_cast<int>(n_subsamples); i++) {
 				//Increas progress monitor
 				p.increment();
 
-				if (lambda_index >= lambda_sequence.n_elem) {
+				if (lambda_index >= len_lambda) {
 					//No more lambda values - exit
 					break;
 				}

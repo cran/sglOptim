@@ -29,7 +29,7 @@ SEXP R_FUN_NAME(sgl_fit, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_bloc
 SEXP FUN_NAME(sgl_fit, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_blockWeights,
 		SEXP r_parameterWeights, SEXP r_alpha, SEXP r_lambda_seq, SEXP r_needed_solutions, SEXP r_config) {
 
-	//Start scope timer, note will only be activated if SGL_TIMING is defined
+	//Start scope timer, note will only be activated if DO_TIMING is defined
 	TIMER_START;
 
 	// Configuration
@@ -41,7 +41,7 @@ SEXP FUN_NAME(sgl_fit, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_blockW
 	const OBJECTIVE::data_type data(data_rList);
 	const OBJECTIVE obj_type(data);
 
-	//Penalty and otimizer
+	//Penalty and optimizer
 	const sgl::natural_vector block_dim = get_value < sgl::natural_vector > (r_block_dim);
 	const sgl::vector blockWeights = get_value < sgl::vector > (r_blockWeights);
 	const sgl::matrix parameterWeights = get_value < sgl::matrix > (r_parameterWeights);

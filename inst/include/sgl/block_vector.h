@@ -21,8 +21,7 @@
 
 
 template<typename MATRIX, typename VECTOR>
-  class BlockVector
-  {
+class BlockVector {
 
   private:
 
@@ -49,101 +48,94 @@ template<typename MATRIX, typename VECTOR>
 
     BlockVector<MATRIX, VECTOR>(BlockVector<MATRIX, VECTOR> const& source);
 
-    BlockVector<MATRIX, VECTOR>(MATRIX const& source,
-        const sgl::DimConfig & dim);
+    BlockVector<MATRIX, VECTOR>(
+      MATRIX const& source,
+      const sgl::DimConfig & dim);
 
-    void
-    set_dim(sgl::DimConfig const& dim);
+    void set_dim(sgl::DimConfig const& dim);
 
-    void
-    copy_size(BlockVector<MATRIX, VECTOR> const& source);
+    void copy_size(BlockVector<MATRIX, VECTOR> const& source);
 
-    BlockVector<MATRIX, VECTOR> const&
-    operator =(BlockVector<MATRIX, VECTOR> const& source);
+    VECTOR const block(arma::u32 block_index) const;
 
-    VECTOR const
-    block(arma::u32 block_index) const;
+    void set_block(
+      arma::u32 block_index,
+      arma::sp_vec const& block);
 
-    void
-    set_block(arma::u32 block_index, arma::sp_vec const& block);
+    void set_block_zero(arma::u32 block_index);
 
-    void
-    set_block_zero(arma::u32 block_index);
+    void zeros();
 
-    void
-    zeros();
+    bool is_block_zero(arma::u32 block_index) const;
 
-    bool
-    is_block_zero(arma::u32 block_index) const;
+    operator MATRIX const&() const { return matrix; }
 
-    operator MATRIX const&() const
-    {
-      return matrix;
-    }
-
-    MATRIX const&
-    as_matrix() const
-    {
-      return matrix;
-    }
+    MATRIX const& as_matrix() const { return matrix; }
 
     BlockVector<MATRIX, VECTOR> const&
-    operator +=(BlockVector<MATRIX, VECTOR> const& x);
+      operator =(BlockVector<MATRIX, VECTOR> const& source);
 
     BlockVector<MATRIX, VECTOR> const&
-    operator -=(BlockVector<MATRIX, VECTOR> const& x);
+      operator +=(BlockVector<MATRIX, VECTOR> const& x);
 
     BlockVector<MATRIX, VECTOR> const&
-    operator *=(typename MATRIX::elem_type const& s);
+      operator -=(BlockVector<MATRIX, VECTOR> const& x);
+
+    BlockVector<MATRIX, VECTOR> const&
+      operator *=(typename MATRIX::elem_type const& s);
 
     BlockVector<MATRIX, VECTOR>
-    operator -();
+      operator -();
 
-    double
-    norm2sq() const;
+    double norm2sq() const;
 
-    double
-    norm2sq(arma::vec const& weights) const;
+    double norm2sq(arma::vec const& weights) const;
   };
 
 template<typename MATRIX, typename VECTOR>
-  inline
   BlockVector<MATRIX, VECTOR>::BlockVector() :
-      matrix(), block_pos(), block_sizes(), n_blocks(0), n_elem(0), n_nonzero(0), n_nonzero_blocks(
-          0)
-  {
-  }
+      matrix(),
+      block_pos(),
+      block_sizes(),
+      n_blocks(0),
+      n_elem(0),
+      n_nonzero(0),
+      n_nonzero_blocks(0) {}
 
 template<typename MATRIX, typename VECTOR>
-  inline
   BlockVector<MATRIX, VECTOR>::BlockVector(const sgl::DimConfig & dim) :
-      matrix(dim.block_unit_dim, dim.dim / dim.block_unit_dim), block_pos(
-          compute_block_pos(matrix.n_rows, dim.block_dim)), block_sizes(
-          dim.block_dim), n_blocks(dim.n_blocks), n_elem(dim.dim), n_nonzero(0), n_nonzero_blocks(
-          0)
-  {
-  }
+      matrix(dim.block_unit_dim, dim.dim / dim.block_unit_dim),
+      block_pos(compute_block_pos(matrix.n_rows, dim.block_dim)),
+      block_sizes(dim.block_dim),
+      n_blocks(dim.n_blocks),
+      n_elem(dim.dim),
+      n_nonzero(0),
+      n_nonzero_blocks(0) {}
 
 template<typename MATRIX, typename VECTOR>
-  inline
+    BlockVector<MATRIX, VECTOR>::BlockVector(const BlockVector<MATRIX, VECTOR> & source) :
+      matrix(source.as_matrix()),
+      block_pos(compute_block_pos(matrix.n_rows, source.block_sizes)),
+      block_sizes(source.block_sizes),
+      n_blocks(source.n_blocks),
+      n_elem(source.n_elem),
+      n_nonzero(source.n_nonzero),
+      n_nonzero_blocks(source.n_nonzero_blocks) {}
+
+template<typename MATRIX, typename VECTOR>
   BlockVector<MATRIX, VECTOR>::BlockVector(
-      const BlockVector<MATRIX, VECTOR> & source) :
-      matrix(source.as_matrix()), block_pos(
-          compute_block_pos(matrix.n_rows, source.block_sizes)), block_sizes(
-          source.block_sizes), n_blocks(source.n_blocks), n_elem(source.n_elem), n_nonzero(
-          source.n_nonzero), n_nonzero_blocks(source.n_nonzero_blocks)
-  {
-  }
 
-template<typename MATRIX, typename VECTOR>
-  inline
-  BlockVector<MATRIX, VECTOR>::BlockVector(const MATRIX & source,
-      const sgl::DimConfig & dim) :
-      matrix(source), block_pos(
-          compute_block_pos(matrix.n_rows, dim.block_dim)), block_sizes(
-          dim.block_dim), n_blocks(dim.n_blocks), n_elem(dim.dim), n_nonzero(
-          source.n_nonzero), n_nonzero_blocks(0)
-  {
+    const MATRIX & source,
+    const sgl::DimConfig & dim) :
+
+    matrix(source),
+    block_pos(compute_block_pos(matrix.n_rows, dim.block_dim)),
+    block_sizes(dim.block_dim),
+    n_blocks(dim.n_blocks),
+    n_elem(dim.dim),
+    n_nonzero(source.n_nonzero),
+    n_nonzero_blocks(0) {
+
     //Compute n_nonzero_blocks
 
     arma::u32 nonzero_blocks = 0;
@@ -160,7 +152,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline void
+  void
   BlockVector<MATRIX, VECTOR>::set_dim(const sgl::DimConfig & dim)
   {
     matrix.set_size(dim.block_unit_dim, dim.dim / dim.block_unit_dim);
@@ -178,7 +170,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline void
+  void
   BlockVector<MATRIX, VECTOR>::copy_size(
       const BlockVector<MATRIX, VECTOR> & source)
   {
@@ -196,7 +188,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline const BlockVector<MATRIX, VECTOR> &
+  const BlockVector<MATRIX, VECTOR> &
   BlockVector<MATRIX, VECTOR>::operator =(
       const BlockVector<MATRIX, VECTOR> & source)
   {
@@ -215,7 +207,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline void
+  void
   BlockVector<MATRIX, VECTOR>::zeros()
   {
     matrix.zeros();
@@ -225,7 +217,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline const BlockVector<MATRIX, VECTOR> &
+  const BlockVector<MATRIX, VECTOR> &
   BlockVector<MATRIX, VECTOR>::operator +=(
       const BlockVector<MATRIX, VECTOR> & x)
   {
@@ -248,7 +240,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline const BlockVector<MATRIX, VECTOR> &
+  const BlockVector<MATRIX, VECTOR> &
   BlockVector<MATRIX, VECTOR>::operator -=(
       const BlockVector<MATRIX, VECTOR> & x)
   {
@@ -271,7 +263,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline const BlockVector<MATRIX, VECTOR> &
+  const BlockVector<MATRIX, VECTOR> &
   BlockVector<MATRIX, VECTOR>::operator *=(const typename MATRIX::elem_type & s)
   {
 
@@ -286,7 +278,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline BlockVector<MATRIX, VECTOR>
+  BlockVector<MATRIX, VECTOR>
   BlockVector<MATRIX, VECTOR>::operator -()
   {
     matrix = -matrix;
@@ -294,14 +286,14 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline double
+  double
   BlockVector<MATRIX, VECTOR>::norm2sq() const
   {
     return square(norm(matrix, 2));
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline double
+  double
   BlockVector<MATRIX, VECTOR>::norm2sq(const arma::vec & weights) const
   {
 
@@ -317,14 +309,14 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  typename MATRIX::elem_type inline
+  typename MATRIX::elem_type
   max(BlockVector<MATRIX, VECTOR> const& a)
   {
     return max(static_cast<MATRIX>(a));
   }
 
 template<typename MATRIX, typename VECTOR>
-  BlockVector<MATRIX, VECTOR> inline
+  BlockVector<MATRIX, VECTOR>
   operator +(BlockVector<MATRIX, VECTOR> const& a
       , BlockVector<MATRIX, VECTOR> const& b)
   {
@@ -334,7 +326,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  BlockVector<MATRIX, VECTOR> inline
+  BlockVector<MATRIX, VECTOR>
   operator -(BlockVector<MATRIX, VECTOR> const& a
       , BlockVector<MATRIX, VECTOR> const& b)
   {
@@ -344,7 +336,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  BlockVector<MATRIX, VECTOR> inline
+  BlockVector<MATRIX, VECTOR>
   operator *(typename MATRIX::elem_type const& a,
       BlockVector<MATRIX, VECTOR> const& b)
   {
@@ -354,7 +346,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  typename MATRIX::elem_type inline
+  typename MATRIX::elem_type
   dot(BlockVector<MATRIX, VECTOR> const& a
       , BlockVector<MATRIX, VECTOR> const& b)
   {
@@ -362,7 +354,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  typename MATRIX::elem_type inline
+  typename MATRIX::elem_type
   dot(arma::vec const& a, BlockVector<MATRIX, VECTOR> const& b)
   {
     arma::u32 n_cols = b.as_matrix().n_cols;
@@ -374,7 +366,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline VECTOR const
+  VECTOR const
   BlockVector<MATRIX, VECTOR>::block(arma::u32 block_index) const
   {
     MATRIX tmp(
@@ -386,7 +378,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline bool
+  bool
   BlockVector<MATRIX, VECTOR>::is_block_zero(arma::u32 block_index) const
   {
     return is_cols_zero(matrix, block_pos(block_index),
@@ -394,7 +386,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline void
+  void
   BlockVector<MATRIX, VECTOR>::set_block_zero(arma::u32 block_index)
   {
 
@@ -411,7 +403,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline void
+  void
   BlockVector<MATRIX, VECTOR>::set_block(arma::u32 block_index,
       arma::sp_vec const& block)
   {
@@ -438,7 +430,7 @@ template<typename MATRIX, typename VECTOR>
   }
 
 template<typename MATRIX, typename VECTOR>
-  inline arma::uvec
+  arma::uvec
   BlockVector<MATRIX, VECTOR>::compute_block_pos(arma::u32 unit_size,
       arma::uvec block_sizes)
   {

@@ -37,8 +37,76 @@ collapse<T> collapse_this(T const& elem) {
     return collapse<T>(elem);
 }
 
+// Generic simplifier
 template<typename T, typename S>
-class simplifier {};
+class simplifier {
+
+    static S response_element;
+
+public:
+
+    //used by predict
+    template<typename response_type>
+    static arma::field<arma::field<T> > simplify(arma::field<response_type> const& responses) {
+
+        arma::field<arma::field<T> > r(responses.n_cols);
+
+        for(sgl::natural i = 0; i < responses.n_cols; ++i) {
+
+          r(i).set_size(responses.n_rows);
+
+          for(sgl::natural j = 0; j < responses.n_rows; ++j) {
+            r(i)(j) = responses(j,i).get(response_element);
+          }
+        }
+
+        return r;
+    }
+
+    //used by subsampleing
+    template<typename response_type>
+    static arma::field<arma::field<arma::field<T> > > simplify(arma::field<arma::field<response_type> > const& responses) {
+
+        arma::field<arma::field<arma::field<T> > > r(responses.n_elem);
+
+        for(sgl::natural i = 0; i < responses.n_elem; ++i) {
+            r(i) = simplifier<T, S>::simplify(responses(i));
+        }
+
+        return r;
+    }
+
+    //used by cv (non overlapping subsamples)
+    template<typename response_type>
+    static arma::field<arma::field<T> > simplify(collapse<arma::field<arma::field<response_type> > > const& cr) {
+
+      arma::field<arma::field<response_type> > const& responses = static_cast<arma::field<arma::field<response_type> > >(cr);
+
+      arma::field<arma::field<T> > r(responses(0).n_cols);
+
+      //Compute number of samples
+      sgl::natural n_samples = 0;
+      for(sgl::natural k = 0; k < responses.n_elem; ++k) {
+          n_samples += responses(k).n_rows;
+      }
+
+      for(sgl::natural i = 0; i < responses(0).n_cols; ++i) { //lambda
+
+          r(i).set_size(n_samples);
+
+          sgl::natural pos = 0;
+          for(sgl::natural k = 0; k < responses.n_elem; ++k) {
+
+              for(sgl::natural j = 0; j < responses(k).n_rows; ++j) {
+                  r(i)(pos) = responses(k)(j,i).get(response_element);
+                  pos++;
+              }
+          }
+      }
+
+      return r;
+    }
+};
 
 template<typename S>
 class simplifier<sgl::vector, S> {
@@ -120,11 +188,11 @@ public:
     template<typename response_type>
     static sgl::matrix simplify(arma::field<response_type> const& responses) {
 
-        sgl::matrix r(responses.n_rows, responses.n_cols);
+        sgl::matrix r(responses.n_cols, responses.n_rows);
 
         for(sgl::natural i = 0; i < responses.n_rows; ++i) {
             for(sgl::natural j = 0; j < responses.n_cols; ++j) {
-                r(i,j) = responses(i,j).get(response_element);
+                r(j,i) = responses(i,j).get(response_element);
             }
         }
 
@@ -157,7 +225,7 @@ public:
             n_samples += responses(k).n_rows;
         }
 
-        sgl::matrix r(n_samples, responses(0).n_cols);
+        sgl::matrix r(responses(0).n_cols, n_samples);
 
         sgl::natural sample = 0;
         for(sgl::natural k = 0; k < responses.n_elem; ++k) {
@@ -166,7 +234,7 @@ public:
 
                 for(sgl::natural i = 0; i < responses(0).n_cols; ++i) { //lambda
 
-                    r(sample, i) = responses(k)(j,i).get(response_element);
+                    r(i, sample) = responses(k)(j,i).get(response_element);
                 }
                 sample++;
             }

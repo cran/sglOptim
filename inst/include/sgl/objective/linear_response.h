@@ -54,7 +54,6 @@ public:
         return linear_predictors;
     }
 
-    //TODO automate the construction of these functions
     template<typename T>
     static rList simplify(T const& responses) {
 

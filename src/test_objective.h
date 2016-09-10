@@ -15,6 +15,7 @@ public:
 
 	const sgl::natural n_samples;
 	const sgl::natural n_responses;
+	const sgl::natural n_variables;
 
 private:
 
@@ -41,6 +42,7 @@ public:
 	LinearLoss()
 			: 	n_samples(0),
 				n_responses(0),
+				n_variables(0),
 				G(sgl::null_natural_vector),
 				W(sgl::null_vector),
 				Y(sgl::null_vector),
@@ -53,6 +55,7 @@ public:
 	LinearLoss(data_type const& data)
 			: 	n_samples(data.get_A().n_samples),
 				n_responses(data.get_B().n_groups),
+				n_variables(data.get_B().n_groups),
 				G(data.get_B().grouping),
 				W(data.get_C().data),
 				Y(data.get_D().data),
@@ -79,7 +82,7 @@ public:
 	const sgl::matrix gradients() const
 	{
 
-        sgl::matrix grad = arma::zeros < sgl::matrix > (n_responses, n_samples);
+      sgl::matrix grad = arma::zeros < sgl::matrix > (n_responses, n_samples);
 
 		for (sgl::natural i = 0; i < n_samples; ++i)
 		{

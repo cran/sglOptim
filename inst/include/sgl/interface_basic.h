@@ -38,14 +38,15 @@ public:
 	 * @param alpha alpha values of the sgl optimizer
 	 * @param config algorithm configuration
 	 */
-	Interface(ObjectiveFunctionType const& objective_type,
-			sgl::DimConfig const& dim_config, sgl::numeric alpha,
-			AlgorithmConfiguration const& config) :
-			alpha(alpha), sgl(dim_config, config), optimizer(sgl, alpha), objective_type(
-					objective_type) {
-
-		//TODO obj_func -> check dim match with dim_config
-	}
+	Interface(
+		ObjectiveFunctionType const& objective_type,
+		sgl::DimConfig const& dim_config,
+		sgl::numeric alpha,
+		AlgorithmConfiguration const& config) :
+			alpha(alpha),
+			sgl(dim_config, config),
+			optimizer(sgl, alpha),
+			objective_type(objective_type) {}
 
 	/**
 	 * Optimize the given objective.
@@ -56,26 +57,35 @@ public:
 	 * @param function_value will after the call returns contain the value of the penalty + objective at the give lambda values
 	 * @param lambda_sequence the lambda sequence to optimize over
 	 */
-	sgl::natural
-	optimize(sgl::parameter_field & x_field,
-			sgl::natural_vector needed_solutions, sgl::vector & object_value,
-			sgl::vector & function_value,
-			const sgl::vector & lambda_sequence) const;
+	natural optimize(
+		parameter_field & x_field,
+		natural_vector needed_solutions,
+		vector & object_value,
+		vector & function_value,
+		vector const& lambda_sequence) const;
 
+ //subsampling
 	template<typename Predictor>
-    boost::tuple<arma::field<arma::field<typename Predictor::response_type> >,
-			sgl::natural_matrix, sgl::natural_matrix>
-	subsampling(Predictor const& predictor, sgl::vector const& lambda_sequence,
-            natural_vector_field const& training_samples,
-            natural_vector_field const& test_samples,
-			sgl::natural const number_of_threads) const;
+
+		boost::tuple<
+			arma::field<arma::field<typename Predictor::response_type> >,
+			natural_matrix,
+			natural_matrix>
+
+		subsampling(
+			Predictor const& predictor,
+			vector_field const& lambda_sequence,
+      natural_vector_field const& training_samples,
+      natural_vector_field const& test_samples,
+			natural const number_of_threads) const;
+
 	//Lambda
 
 	/**
 	 *
 	 * @return
 	 */
-	sgl::numeric lambda_max() const;
+	numeric lambda_max() const;
 
 	/**
 	 *
@@ -84,11 +94,12 @@ public:
 	 * @param n
 	 * @return
 	 */
-	sgl::vector	lambda_sequence(sgl::numeric lambda_max, sgl::numeric lambda_min,
-			sgl::natural n) const;
+	vector	lambda_sequence(
+		numeric lambda_max,
+		numeric lambda_min,
+		natural n) const;
 };
 
-//TODO this interface is dangerous as a call changes the state of the objective
 template<typename ObjectiveFunctionType>
 sgl::numeric Interface<ObjectiveFunctionType>::lambda_max() const {
 
@@ -119,8 +130,10 @@ sgl::numeric Interface<ObjectiveFunctionType>::lambda_max() const {
 
 template<typename ObjectiveFunctionType>
 sgl::vector Interface<ObjectiveFunctionType>::lambda_sequence(
-		sgl::numeric lambda_max, sgl::numeric lambda_min,
+		sgl::numeric lambda_max,
+		sgl::numeric lambda_min,
 		sgl::natural n) const {
+
 	sgl::vector lambda_sequence(n);
 
 	lambda_sequence(n - 1) = lambda_min;
@@ -136,66 +149,87 @@ sgl::vector Interface<ObjectiveFunctionType>::lambda_sequence(
 
 template<typename ObjectiveFunctionType>
 inline sgl::natural Interface<ObjectiveFunctionType>::optimize(
-		sgl::parameter_field & x_field, sgl::natural_vector needed_solutions,
-		sgl::vector & object_value, sgl::vector & function_value,
-		const sgl::vector & lambda_sequence) const {
+		sgl::parameter_field & x_field,
+		sgl::natural_vector needed_solutions,
+		sgl::vector & object_value,
+		sgl::vector & function_value,
+		sgl::vector const& lambda_sequence) const {
 
 	//Domain checks
-	if (!sgl::is_decreasing(lambda_sequence)
-			|| !sgl::is_positive(lambda_sequence)) {
-		throw std::domain_error(
-				"the lambda sequence must be decreasing and positive");
+	if ( ! sgl::is_decreasing(lambda_sequence)
+			|| ! sgl::is_positive(lambda_sequence)) {
+
+		throw std::domain_error("the lambda sequence must be decreasing and positive");
 	}
 
 	//TODO check that all elements of needed_solutions are unique and less than the length of lambda_sequence
 
 	typename ObjectiveFunctionType::instance_type objective = objective_type.create_instance(sgl.setup);
 
-	return optimizer.optimize(x_field, needed_solutions, object_value, function_value,
-			objective, lambda_sequence, true);
+	sgl::natural n_solutions = optimizer.optimize(
+		x_field,
+		needed_solutions,
+		object_value,
+		function_value,
+		objective,
+		lambda_sequence, true);
+
+		return n_solutions;
 }
 
 template<typename ObjectiveFunctionType>
 template<typename Predictor>
-inline boost::tuple<arma::field<arma::field<typename Predictor::response_type> >,
-		sgl::natural_matrix, sgl::natural_matrix> Interface<ObjectiveFunctionType>::subsampling(Predictor const& predictor,
-		sgl::vector const& lambda_sequence,
-        natural_vector_field const& training_samples,
-        natural_vector_field const& test_samples,
-		sgl::natural const number_of_threads) const {
+inline boost::tuple<
+				arma::field<arma::field<typename Predictor::response_type> >,
+				sgl::natural_matrix,
+				sgl::natural_matrix>
+
+					Interface<ObjectiveFunctionType>::subsampling(
+
+						Predictor const& predictor,
+						sgl::vector_field const& lambda_sequence,
+    				natural_vector_field const& training_samples,
+    				natural_vector_field const& test_samples,
+						sgl::natural const number_of_threads) const {
 
 	//Domain checks
-	if (!sgl::is_decreasing(lambda_sequence)
-			|| !sgl::is_positive(lambda_sequence)) {
-		throw std::domain_error(
-				"subsampling : the lambda sequence must be decreasing and positive");
+	for(index i = 0; i < lambda_sequence.n_elem; ++i) {
+		if ( ! sgl::is_decreasing(lambda_sequence(i))
+			|| ! sgl::is_positive(lambda_sequence(i))) {
+
+			throw std::domain_error(
+					"subsampling : the lambda sequence must be decreasing and positive");
+			}
 	}
 
 	if (training_samples.n_elem != test_samples.n_elem) {
+
 		throw std::domain_error(
 				"subsampling : number of training and test subsamples do not match");
 	}
 
-	//TODO domain checks
-
 	if(number_of_threads > 1) {
-#ifndef SGL_OPENMP_SUPP
-	report_warning("Openmp not supported -- will only use one thread");
-#else
-#ifndef SGL_USE_OPENMP
-#define SGL_USE_OPENMP
-#endif
-#include"subsampling.h"
-#endif
+	#ifndef SGL_OPENMP_SUPP
+			report_warning("Openmp not supported -- will only use one thread");
+	#else
+		#ifndef SGL_USE_OPENMP
+			#define SGL_USE_OPENMP
+		#endif
+
+		#include"subsampling.h"
+
+	#endif
+
 		// this point will not be reached
 	}
 
-#ifdef SGL_USE_OPENMP
-#undef SGL_USE_OPENMP
-#endif
-		//No openmp
-		#include"subsampling.h"
-		// this point will not be reached
+	#ifdef SGL_USE_OPENMP
+	#undef SGL_USE_OPENMP
+	#endif
+	//No openmp
+	#include"subsampling.h"
+
+	// this point will not be reached
 }
 
 #endif /* INTERFACE_BASIC_H_ */

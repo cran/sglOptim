@@ -19,26 +19,27 @@
 #ifndef MSGL_MATRIX_DATA_H_
 #define MSGL_MATRIX_DATA_H_
 
-//TODO clean up, n_samples, n_groups should be function and DataPackage should check that they all return the same result if present
+//TODO clean up
 
 template<typename T>
-	const T getData(rList const& rdata, char const symbol) {
+const T getData(rList const& rdata, char const symbol) {
 
-		std::string const name(1, symbol);
+	std::string const name(1, symbol);
 
-		int index;
-		if (index = rdata.getIndex(name), index >= 0) {
+	int index = rdata.getIndex(name);
 
-			return get_value <T> (rdata.get(index));
-
-		} else {
-
-            std::string msg = "Data invalid - ";
-			throw std::domain_error(msg.append(name).c_str());
-			return T(); //avoid compiler warnings
-
-		}
+	if (index >= 0) {
+		return get_value <T> (rdata.get(index));
 	}
+
+	else {
+
+		std::string msg = "Data invalid -- ";
+		throw std::domain_error(msg.append(name).c_str());
+		return T(); //avoid compiler warnings
+
+	}
+}
 
 template<typename T>
 T submatrix(T const& matrix, sgl::natural_vector const& rows) {
@@ -118,8 +119,8 @@ public:
 private:
 
     void validity() {
-        if(n_samples <= 1) {
-            throw std::domain_error("Data contains less than two sample.");
+        if(n_samples < 1) {
+            throw std::domain_error("Data contains no samples.");
         }
 
         if(data_matrix.n_cols <= 1) {
@@ -174,20 +175,20 @@ class MultiResponse {
 public:
 
 	T const response; // data matrix n_samples x n_responses
-	sgl::natural const n_groups; // responses per sample
+	sgl::natural const n_responses; // responses per sample
 
-	MultiResponse() : response(), n_groups(0) {
+	MultiResponse() : response(), n_responses(0) {
 	}
 
 	MultiResponse(T const& response) :
-		response(response), n_groups(response.n_cols) {
+		response(response), n_responses(response.n_cols) {
 	}
 
 	MultiResponse(MultiResponse<T, symbol> const& data) :
-		response(data.response), n_groups(data.n_groups) {
+		response(data.response), n_responses(data.n_responses) {
 	}
 
-	MultiResponse(rList const& rdata) : response(getData<T>(rdata, symbol)), n_groups(response.n_cols) {
+	MultiResponse(rList const& rdata) : response(getData<T>(rdata, symbol)), n_responses(response.n_cols) {
 	}
 
 

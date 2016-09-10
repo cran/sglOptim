@@ -1,17 +1,14 @@
 /*
 	Lightweight tools for R and c++ integration.
-    Copyright (C) 2014 Martin Vincent
-
+    Copyright (C) 2012 Martin Vincent
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
-
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
@@ -19,33 +16,27 @@
 #ifndef GET_VALUE_H_
 #define GET_VALUE_H_
 
-//TODO check that SEXP type match type
-
 template<typename type>
 type get_value(SEXP exp) {
-	// no code should go here
-	// Type unsupported => error here
-	const type error_type_not_defined;
-	&error_type_not_defined = 0;
+	//deafult get_value
+	return type(exp);
 }
 
-/**
- * Get double value from SEXP
- *
- * @param exp
- * @return double
- */
 template<>
 double get_value(SEXP exp) {
 	return static_cast<double>(*REAL(exp));
 }
 
-/**
- * Get unsigned integere value from SEXP
- *
- * @param exp
- * @return unsigned int
- */
+template<>
+int get_value(SEXP exp) {
+    return static_cast<int>(*INTEGER(exp));
+}
+
+template<>
+char get_value(SEXP exp) {
+    return static_cast<char>(*CHAR(exp));
+}
+
 template<>
 arma::u32 get_value(SEXP exp) {
 	return static_cast<arma::u32>(*INTEGER(exp));
@@ -54,6 +45,11 @@ arma::u32 get_value(SEXP exp) {
 template<>
 bool get_value(SEXP exp) {
 	return static_cast<bool>(*LOGICAL(exp));
+}
+
+template<>
+std::string get_value(SEXP exp) {
+	return CHAR(STRING_ELT(exp,0));
 }
 
 template<>
@@ -112,9 +108,9 @@ arma::sp_mat get_value(SEXP exp) {
 		return m;
 	}
 
-    arma::uword* new_row_indices = arma::memory::acquire_chunked < arma::uword > (n_nonzero + 1);
+	arma::uword* new_row_indices = arma::memory::acquire_chunked < arma::uword > (n_nonzero + 1);
+	double* new_values = arma::memory::acquire_chunked<double>(n_nonzero + 1);
 
-   	double* new_values = arma::memory::acquire_chunked<double>(n_nonzero + 1);
 	arma::arrayops::copy(new_values, REAL(values), n_nonzero);
 
 	int * row_ptr = INTEGER(row_idx);
@@ -125,11 +121,9 @@ arma::sp_mat get_value(SEXP exp) {
 	new_row_indices[n_nonzero] = 0;
 
 	int * col_ptr = INTEGER(col_ptrs);
-	for (unsigned int i = 0; i < n_cols + 1; ++i) {
+	for (unsigned int i = 0; i < n_cols + 2; ++i) {
 		arma::access::rwp(m.col_ptrs)[i] = static_cast<arma::uword>(col_ptr[i]);
 	}
-
-	arma::access::rwp(m.col_ptrs)[n_cols+1] = std::numeric_limits<int>::max();
 
 	arma::memory::release(m.values);
 	arma::memory::release(m.row_indices);
@@ -137,16 +131,12 @@ arma::sp_mat get_value(SEXP exp) {
 	arma::access::rw(m.values) = new_values;
 	arma::access::rw(m.row_indices) = new_row_indices;
 
-	// Update n
+	// Update counts and such.
 	arma::access::rw(m.n_nonzero) = n_nonzero;
 
 	return m;
 }
 
-template<>
-rList get_value(SEXP exp) {
-	return rList(exp);
-}
 
 template<typename type>
 arma::field<type> get_field(SEXP exp) {
@@ -161,28 +151,5 @@ arma::field<type> get_field(SEXP exp) {
 	return res;
 }
 
-#ifdef ARMA_64BIT_WORD
-
-template<>
-arma::Col<arma::u64> get_value(SEXP exp) {
-
-	int *ptr = INTEGER(exp);
-
-	return arma::conv_to< arma::Col<arma::u64> >::from(arma::Col<int>(ptr, Rf_length(exp), false, true));
-}
-
-template<>
-arma::Col<arma::s64> get_value(SEXP exp) {
-
-	int *ptr = INTEGER(exp);
-
-	return arma::conv_to< arma::Col<arma::s64> >::from(arma::Col<int>(ptr, Rf_length(exp), false, true));
-}
-
-template<>
-arma::u64 get_value(SEXP exp) {
-	return static_cast<arma::u64>(*INTEGER(exp));
-}
-#endif
 
 #endif /* GET_VALUE_H_ */

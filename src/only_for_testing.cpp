@@ -20,7 +20,7 @@
 //#undef NDEBUG
 
 //Should the timers be activated (only needed for profiling the code)
-//#define SGL_TIMING
+//#define DO_TIMING
 
 //Configuration
 //Debugging
@@ -60,6 +60,7 @@
 
 #include <sgl/RInterface/sgl_lambda_seq.h>
 #include <sgl/RInterface/sgl_fit.h>
+#include <sgl/RInterface/sgl_test.h>
 
 #define PREDICTOR sgl::LinearPredictor < sgl::matrix , sgl::LinearResponse >
 
@@ -83,6 +84,7 @@
 
 #include <sgl/RInterface/sgl_lambda_seq.h>
 #include <sgl/RInterface/sgl_fit.h>
+#include <sgl/RInterface/sgl_test.h>
 
 #define PREDICTOR sgl::LinearPredictor < sgl::sparse_matrix , sgl::LinearResponse >
 
@@ -101,7 +103,8 @@ static const R_CallMethodDef sglCallMethods[] = {
 		SGL_LAMBDA(sgl_test_dense), SGL_LAMBDA(sgl_test_sparse),
 		SGL_FIT(sgl_test_dense), SGL_FIT(sgl_test_sparse),
 		SGL_PREDICT(sgl_test_dense), SGL_PREDICT(sgl_test_sparse),
-        SGL_SUBSAMPLING(sgl_test_dense), SGL_SUBSAMPLING(sgl_test_sparse),
+    SGL_SUBSAMPLING(sgl_test_dense), SGL_SUBSAMPLING(sgl_test_sparse),
+		SGL_TEST(sgl_test_dense), SGL_TEST(sgl_test_sparse),
 		{NULL}};
 
 extern "C" {

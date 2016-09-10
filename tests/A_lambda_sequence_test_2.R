@@ -19,7 +19,7 @@ groupWeights <- c(sqrt(length(levels(sampleGrouping))*table(covariateGrouping)))
 parameterWeights <-  matrix(1, nrow = length(levels(sampleGrouping)), ncol = ncol(x))
 d <- 100L
 lambda.min <- 0.1
-algorithm.config <- sgl.standard.config 
+algorithm.config <- sgl.standard.config
 
 # To check dimension do
 #data <- create.sgldata(x, y, weights, sampleGrouping)
@@ -50,3 +50,17 @@ data <- create.sgldata(x, y, weights, sampleGrouping, sparseX = TRUE)
 lambda_sp <- sgl_lambda_sequence("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha = .5, d = d, lambda.min, algorithm.config)
 
 if(max(abs(lambda_sp-lambda_da))  > 1e-5) stop()
+
+
+### Test for erroes if x or y contains NA values
+xna <- x
+xna[1,1] <- NA
+
+res <- try(data <- create.sgldata(xna, y, weights, sampleGrouping), silent = TRUE)
+if(class(res) != "try-error") stop() # should produce error
+
+yna <- y
+yna[1] <- NA
+
+res <- try(data <- create.sgldata(x, yna, weights, sampleGrouping), silent = TRUE)
+if(class(res) != "try-error") stop() # should produce error

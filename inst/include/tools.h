@@ -59,7 +59,4 @@ create_error_msg(const char * msg, const char * file_name, int line_number)
   return error_msg.str();
 }
 
-//TODO clean up assert -- use template
-#define ASSERT(condition, msg) if(!(condition)) throw std::runtime_error(create_error_msg(msg, __FILE__, __LINE__));
-
 #endif /* TOOLS_H_ */

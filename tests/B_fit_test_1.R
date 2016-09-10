@@ -16,7 +16,7 @@ parameterWeights <-  matrix(1, nrow = length(levels(sampleGrouping)), ncol = nco
 alpha <- 0
 d <- 50L
 lambda.min <- 2
-algorithm.config <- sgl.standard.config 
+algorithm.config <- sgl.standard.config
 
 # create data
 data <- create.sgldata(x, y, weights, sampleGrouping)
@@ -36,10 +36,33 @@ res1b <- sgl_predict("sgl_test_sparse", "sglOptim", fit1b, data)
 if(max(abs(fit1a$beta[[25]]-fit1b$beta[[25]])) > 1e-5) stop()
 if(max(abs(res1a$responses$link[[25]]-res1b$responses$link[[25]])) > 1e-5) stop()
 
-# Simple navigate tests
+## Navigate tests
 
-nmod(fit1a)
-models(fit1a)
-coef(fit1a)
+# nmod
+if(nmod(fit1a) != d) stop()
+
+# models
+m <- models(fit1a)
+if(length(m) != d) stop()
+if(any(colnames(m[[1]]) != colnames(x))) stop()
+if(any(rownames(m[[1]]) != levels(grp))) stop()
+
+# coef
+if(length(coef(fit1a)) != d) stop()
+
+# features and parameters
 features(fit1a)
 parameters(fit1a)
+features_stat(fit1a)
+parameters_stat(fit1a)
+
+# print
+sgl_print(fit1a)
+sgl_print(res1a)
+
+# test names on output
+if(any(colnames(fit1a$beta[[10]]) != colnames(x))) stop()
+
+if(any(rownames(fit1a$beta[[10]]) != levels(grp))) stop()
+
+if(any(colnames(res1a$responses$link[[10]]) != rownames(x))) stop()

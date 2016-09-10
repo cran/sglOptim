@@ -80,25 +80,27 @@ using boost::tuple;
 //Tools
 #include <tools.h>
 
-//Arma additions
-#include <sgl/arma_additions.h>
-
-//R tools
-#include <rtools.h>
-
 #include <limits>
 #include <time.h>
 #include <stdexcept>
 
 #include "sgl/simple_timer.h"
 
+//Arma additions
+#include <sgl/arma_additions.h>
+
+//R tools
+#include <rtools.h>
+
+//sgl
 namespace sgl {
 #include "sgl/numeric.h"
-#include "sgl/config.h"
+#include "sgl/error.h"
 #include "sgl/algorithm_config.h"
 #include "sgl/dim_config.h"
 #include "sgl/block_vector.h"
 #include "sgl/sgl_problem.h"
+#include "sgl/sgl_tester.h"
 #include "sgl/sgl_optimizer.h"
 #include "sgl/objective_function_type.h"
 #include "sgl/interface_basic.h"

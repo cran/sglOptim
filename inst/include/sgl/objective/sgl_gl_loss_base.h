@@ -28,17 +28,26 @@ public:
 
 	typedef sgl::vector representation;
 
+	static void scalar_mult_add(sgl::vector & J, double s, sgl::vector const& H) {
+			J += s*H;
+	}
+
+	static void scalar_mult_set(sgl::vector & J, double s, sgl::vector const& H) {
+			J = s*H;
+	}
+
+
 	static void diag(sgl::matrix & x, sgl::natural j, sgl::natural k, sgl::natural n_groups, sgl::vector const& H) {
 		x.submat(j * n_groups, k * n_groups,
 					(j + 1) * n_groups - 1, (k + 1) * n_groups - 1) += diagmat(H);
 	}
 
-	static sgl::vector const update(sgl::vector const& H, sgl::vector const& V, double s) {
+	static sgl::matrix const update(sgl::vector const& H, sgl::matrix const& V, double s) {
 		return s * H % V;
 	}
 
-	static representation zero_representation(sgl::natural n_groups) {
-		return sgl::vector(n_groups, arma::fill::zeros);
+	static representation zero_representation_of(representation const& H) {
+		return sgl::vector(H.n_elem, arma::fill::zeros);
 	}
 };
 
@@ -52,16 +61,24 @@ public:
 
 	typedef double representation;
 
+	static void scalar_mult_add(double & J, double s, double H) {
+			J += s*H;
+	}
+
+	static void scalar_mult_set(double & J, double s, double H) {
+			J = s*H;
+	}
+
 	static void diag(sgl::matrix & x, sgl::natural j, sgl::natural k, sgl::natural n_groups, double H) {
 		x.submat(j * n_groups, k * n_groups,
 					(j + 1) * n_groups - 1, (k + 1) * n_groups - 1).diag() += H;
 	}
 
-	static sgl::vector update(double const& H, sgl::vector const& V, double s) {
+	static sgl::matrix update(double const& H, sgl::matrix const& V, double s) {
 		return s * H * V;
 	}
 
-	static representation zero_representation(sgl::natural n_groups) {
+	static representation zero_representation_of(representation const& H) {
 		return 0;
 	}
 
@@ -76,17 +93,118 @@ public:
 
 	typedef sgl::matrix representation;
 
+	static void scalar_mult_add(sgl::matrix & J, double s, sgl::matrix const& H) {
+			J += s*H;
+	}
+
+	static void scalar_mult_set(sgl::matrix & J, double s, sgl::matrix const& H) {
+			J = s*H;
+	}
+
 	static void diag(sgl::matrix & x, sgl::natural j, sgl::natural k, sgl::natural n_groups, sgl::matrix const& H) {
 		x.submat(j * n_groups, k * n_groups,
 					(j + 1) * n_groups - 1, (k + 1) * n_groups - 1) += H;
 	}
 
-	static sgl::vector update(sgl::matrix const& H, sgl::vector const& V, double s) {
+	static sgl::matrix update(sgl::matrix const& H, sgl::matrix const& V, double s) {
 		return s * H * V;
 	}
 
-	static representation zero_representation(sgl::natural n_groups) {
-		return sgl::matrix(n_groups, n_groups, arma::fill::zeros);
+	static representation zero_representation_of(representation const& H) {
+		return sgl::matrix(H.n_rows, H.n_cols, arma::fill::zeros);
+	}
+
+};
+
+template<bool constant = false>
+class hessian_full_sparse {
+
+public:
+
+	static const bool is_constant = constant;
+
+	typedef sgl::sparse_matrix representation;
+
+	static void scalar_mult_add(sgl::sparse_matrix & J, double s, sgl::sparse_matrix const& H) {
+			J += s*H;
+	}
+
+	static void scalar_mult_set(sgl::sparse_matrix & J, double s, sgl::sparse_matrix const& H) {
+			J = s*H;
+	}
+
+	static void diag(sgl::matrix & x, sgl::natural j, sgl::natural k, sgl::natural n_groups, sgl::sparse_matrix const& H) {
+		x.submat(j * n_groups, k * n_groups,
+					(j + 1) * n_groups - 1, (k + 1) * n_groups - 1) += H;
+	}
+
+	static sgl::matrix update(sgl::sparse_matrix const& H, sgl::matrix const& V, double s) {
+		return s * H * V;
+	}
+
+	static representation zero_representation_of(representation const& H) {
+		return sgl::sparse_matrix(H.n_rows, H.n_cols);
+	}
+
+};
+
+template<typename T, sgl::natural blocks, bool constant = false>
+class hessian_block_diagonal {
+
+public:
+
+	static const bool is_constant = constant;
+
+	typedef arma::field<T> representation;
+
+	static void scalar_mult_add(representation & J, double s, representation const& H) {
+		for(sgl::natural i = 0; i < blocks; ++i) {
+			J(i) += s*H(i);
+		}
+	}
+
+	static void scalar_mult_set(representation & J, double s, representation const& H) {
+		for(sgl::natural i = 0; i < blocks; ++i) {
+			J(i) = s*H(i);
+		}
+	}
+
+	static void diag(sgl::matrix & x, sgl::natural j, sgl::natural k, sgl::natural n_groups, representation const& H) {
+
+		sgl::natural from_row = j * n_groups;
+		sgl::natural from_col = k * n_groups;
+		for(sgl::natural i = 0; i < blocks; ++i) {
+
+			x.submat(
+				from_row, from_col,
+				from_row + H(i).n_cols - 1, from_col + H(i).n_cols - 1) += H(i);
+
+			from_row += H(i).n_cols;
+			from_col += H(i).n_cols;
+		}
+	}
+
+	static sgl::matrix update(representation const& H, sgl::matrix const& V, double s) {
+
+		sgl::vector r(V.n_rows, V.n_cols); // H is square
+
+		sgl::natural from = 0;
+		for(sgl::natural i = 0; i < blocks; ++i) {
+			 r.rows(from, from + H(i).n_cols - 1) = s * H(i) * V.rows(from, from + H(i).n_cols - 1);
+			 from += H(i).n_cols;
+		}
+				return r;
+	}
+
+	static representation zero_representation_of(representation const& H) {
+
+		representation zr(blocks);
+		for(sgl::natural i = 0; i < blocks; ++i) {
+			zr(i).set_size(H(i).n_rows, H(i).n_cols);
+			zr(i).zeros();
+		}
+
+		return zr;
 	}
 
 };
@@ -108,8 +226,8 @@ protected:
 	E const& X; //design matrix - n_samples x n_features
 
 	sgl::natural const n_samples;
-	sgl::natural const n_groups; // number groups per feature
 	sgl::natural const n_features;
+  sgl::natural const n_feature_parameters;
 
 	mutable sgl::matrix partial_hessian;
 	mutable sgl::natural_vector hessian_diag_mat_computed;
@@ -171,9 +289,9 @@ GenralizedLinearLossBase < T , E >::GenralizedLinearLossBase(data_type const& da
 		  	dim_config(dim_config),
 		  	X(data.data_matrix),
 		  	n_samples(data.n_samples),
-		  	n_groups(data.n_groups),
 		  	n_features(X.n_cols),
-		  	partial_hessian(n_groups, n_samples),
+				n_feature_parameters(T::n_variables),
+		  	partial_hessian(T::n_variables, n_samples),
 		  	hessian_diag_mat_computed(dim_config.n_blocks),
 		  	hessian_diag_mat(dim_config.n_blocks),
 		  	current_parameters(dim_config),
@@ -184,16 +302,21 @@ GenralizedLinearLossBase < T , E >::GenralizedLinearLossBase(data_type const& da
 	TIMER_START;
 
 	//Dim check
-	if(n_features*n_groups != dim_config.dim) {
-		throw std::runtime_error("GenralizedLinearLossBase - dimension mismatch");
+	if(n_features*n_feature_parameters != dim_config.dim) {
+
+	//	std::cout << "n_features = " << n_features << std::endl;
+	//	std::cout << "n_groups = " << n_groups << std::endl;
+	//	std::cout << "dim_config.dim = " << dim_config.dim << std::endl;
+
+		throw std::runtime_error("GenralizedLinearLossBase: Dimension Mismatch -- total parameters");
 	}
 
 	if(X.n_rows != n_samples) {
-		throw std::runtime_error("GenralizedLinearLossBase - dimension mismatch");
+		throw std::runtime_error("GenralizedLinearLossBase: Dimension Mismatch -- number of samples");
 	}
 
 	if(X.n_rows == 0 || X.n_cols == 0) {
-		throw std::runtime_error("GenralizedLinearLossBase - no data");
+		throw std::runtime_error("GenralizedLinearLossBase: No Data");
 	}
 
 
@@ -204,8 +327,8 @@ GenralizedLinearLossBase < T , E >::GenralizedLinearLossBase(data_type const& da
 	for (sgl::natural j = 0; j < dim_config.n_blocks; ++j)
 	{
 
-		x_norm(j) = max(css.subvec(dim_config.block_start_index(j) / n_groups,
-					dim_config.block_end_index(j) / n_groups));
+		x_norm(j) = max(css.subvec(dim_config.block_start_index(j) / n_feature_parameters,
+					dim_config.block_end_index(j) / n_feature_parameters));
 
 	}
 
@@ -219,6 +342,7 @@ void GenralizedLinearLossBase < T , E >::at(const sgl::parameter & parameters)
 {
 
 	TIMER_START;
+	DEBUG_ENTER
 
 	current_parameters = parameters;
 
@@ -256,7 +380,7 @@ sgl::vector const GenralizedLinearLossBase < T , E >::gradient() const
 
 	TIMER_START;
 
-	return reshape(T::gradients() * X, n_features * n_groups, 1);
+	return reshape(T::gradients() * X, n_features * n_feature_parameters, 1);
 }
 
 //note this function may return inf
@@ -273,13 +397,12 @@ inline sgl::vector const GenralizedLinearLossBase < T , E >::compute_block_gradi
 
 	TIMER_START;
 
-	sgl::index start = dim_config.block_start_index(block_index) / n_groups;
-	sgl::index end = dim_config.block_end_index(block_index) / n_groups;
+	sgl::index start = dim_config.block_start_index(block_index) / n_feature_parameters;
+	sgl::index end = dim_config.block_end_index(block_index) / n_feature_parameters;
 
 	return reshape(partial_hessian * X.cols(start,end), dim_config.block_dim(block_index), 1);
 }
 
-//TODO rename
 template < typename T , typename E >
 inline void GenralizedLinearLossBase < T , E >::compute_hessian_norm() const
 {

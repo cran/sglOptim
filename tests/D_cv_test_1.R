@@ -17,7 +17,7 @@ parameterWeights <-  matrix(1, nrow = length(levels(sampleGrouping)), ncol = nco
 alpha <- 0
 d <- 20L
 lambda.min <- 0.5
-algorithm.config <- sgl.standard.config 
+algorithm.config <- sgl.standard.config
 
 # create data
 data <- create.sgldata(x, y, weights, sampleGrouping)
@@ -30,3 +30,16 @@ data <- create.sgldata(x, y, weights, sampleGrouping, sparseX = TRUE)
 set.seed(100)
 
 fit1b.cv <- sgl_cv("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, fold = 2L, cv.indices = list(), max.threads = 1L, algorithm.config)
+
+
+# Navigate tests
+
+# nmod
+if(nmod(fit1a.cv) != d) stop()
+
+# features and parameters
+features_stat(fit1a.cv)
+parameters_stat(fit1a.cv)
+
+# test names on output
+if(any(colnames(fit1a.cv$responses$link[[10]]) != rownames(x))) stop()
