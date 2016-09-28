@@ -1,7 +1,7 @@
 \name{NEWS}
 \title{News for Package 'sglOptim'}
 
-\section{Changes in sglOptim version 1.2.2 (2016-09-10)}{
+\section{Changes in sglOptim version 1.3.0 (2016-09-28)}{
 \itemize{
 \item Improved documentation and functionality:
 \itemize{
@@ -9,6 +9,7 @@
 	\item Minor updates and documentation corrections
 	\item Better handling of R memory protection (fewer PROTECT calls)
 	\item Hadling of more complex response types
+	\item subsampling uses foreach and doParallel (showing progressbar no longer supported for subsampling and cross validation)
 	\item subsampling now supports different lambda sequences for each subsample
 }
  \item Fixes :

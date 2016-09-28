@@ -28,7 +28,7 @@ public:
   SglTester(const sgl::SglProblem &sgl) : sgl(sgl) {}
 
   template <typename T>
-  sgl::natural test(T &objective, sgl::natural const max_problems) const {
+  sgl::natural test(T & objective, sgl::natural const max_problems) const {
 
     sgl::natural problem_count = 0;
 

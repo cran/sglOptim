@@ -105,10 +105,6 @@ public:
     	return *this;
     }
 
-    const MatrixData<T> subdata(sgl::natural_vector const& samples) const {
-        return MatrixData<T>(submatrix<T>(data_matrix, samples));
-    }
-
 	void set_matrix(T const& data_matrix) {
 		const_cast<T&>(this->data_matrix) = data_matrix;
 		const_cast<sgl::natural&>(this->n_samples) = data_matrix.n_rows;
@@ -164,9 +160,6 @@ public:
 		const_cast<sgl::natural&>(this->n_groups) = max(grouping)+1;
 	}
 
-    const GroupData subdata(sgl::natural_vector const& samples) const {
-        return GroupData(grouping(samples));
-    }
 };
 
 template<typename T, char symbol>
@@ -199,10 +192,6 @@ public:
     	}
 
     	return *this;
-    }
-
-    const MultiResponse<T, symbol> subdata(sgl::natural_vector const& samples) const {
-        return MultiResponse<T, symbol>(submatrix<T>(response, samples));
     }
 
 	void set_matrix(T const& response) {
@@ -242,10 +231,6 @@ public:
 		const_cast<D&>(this->data) = data;
 	}
 
-    const Data subdata(sgl::natural_vector const& samples) const {
-        return Data(data(samples));
-    }
-
 };
 
 template<typename A, typename B>
@@ -267,9 +252,6 @@ public:
 		return static_cast<B const&>(*this);
 	}
 
-	const DataPackage_2<A, B> subdata(sgl::natural_vector const& samples) const {
-			return DataPackage_2<A, B>(A::subdata(samples), B::subdata(samples));
-		}
 };
 
 template<typename A, typename B, typename C>
@@ -295,9 +277,6 @@ public:
 		return static_cast<C const&>(*this);
 	}
 
-	const DataPackage_3<A, B, C> subdata(sgl::natural_vector const& samples) const {
-			return DataPackage_3<A, B, C>(A::subdata(samples), B::subdata(samples), C::subdata(samples));
-		}
 };
 
 template<typename A, typename B, typename C, typename D>
@@ -327,9 +306,6 @@ public:
 		return static_cast<D const&>(*this);
 	}
 
-	const DataPackage_4<A, B, C, D> subdata(sgl::natural_vector const& samples) const {
-			return DataPackage_4<A, B, C, D>(A::subdata(samples), B::subdata(samples), C::subdata(samples), D::subdata(samples));
-		}
 };
 
 #endif /* MSGL_MATRIX_DATA_H_ */

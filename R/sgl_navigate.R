@@ -467,7 +467,7 @@ sgl_print <- function(x) {
 		para <- colMeans(x$parameters)
 
 		print(data.frame('Index: ' = sel,
-						'Lambda: ' = x$lambda[sel],
+						'Lambda: ' = x$lambda[[1]][sel],
 						'Features: ' = print_with_metric_prefix(feat[sel]),
 						'Parameters: ' = print_with_metric_prefix(para[sel]),
 						'Error: ' = err[sel], check.names = FALSE),
@@ -478,7 +478,7 @@ sgl_print <- function(x) {
 		sel <- which(err == min(err))[1]
 
 		print(data.frame('Index: ' = sel,
-						'Lambda: ' = x$lambda[sel],
+						'Lambda: ' = x$lambda[[1]][sel],
 						'Features: ' = print_with_metric_prefix(feat[sel]),
 						'Parameters: ' = print_with_metric_prefix(para[sel]),
 						'Error: ' = err[sel], check.names = FALSE),

@@ -6,7 +6,8 @@
 \usage{
 sgl_cv(module_name, PACKAGE, data, parameterGrouping, groupWeights,
   parameterWeights, alpha, lambda, fold = 2, cv.indices = list(),
-  max.threads = 2, algorithm.config = sgl.standard.config)
+  max.threads = NULL, use_parallel = FALSE,
+  algorithm.config = sgl.standard.config)
 }
 \arguments{
 \item{module_name}{reference to objective specific C++ routines.}
@@ -29,10 +30,14 @@ sgl_cv(module_name, PACKAGE, data, parameterGrouping, groupWeights,
 If \code{fold}\eqn{\le}\code{max(table(classes))} then the data will be split into \code{fold} disjoint subsets keeping the ration of classes approximately equal.
 Otherwise the data will be split into \code{fold} disjoint subsets without keeping the ration fixed.}
 
-\item{cv.indices}{a list of indices of a cross validation splitting. 
+\item{cv.indices}{a list of indices of a cross validation splitting.
 If \code{cv.indices = NULL} then a random splitting will be generated using the \code{fold} argument.}
 
-\item{max.threads}{the maximal number of threads to be used.}
+\item{max.threads}{Deprecated (will be removed in 2018),
+instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
+The maximal number of threads to be used.}
+
+\item{use_parallel}{If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}. The user must registre the parallel backend.}
 
 \item{algorithm.config}{the algorithm configuration to be used.}
 }

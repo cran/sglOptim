@@ -50,24 +50,6 @@
 //Support for xl matrices
 //#define ARMA_64BIT_WORD
 
-// Due to some unknown issues with the sgloptim code multithreading is currently not working on sparc
-// Switching off openmp on sparc
-#ifdef __sparc
-#ifdef _OPENMP
-#undef _OPENMP
-#endif
-#endif
-
-//Should openmp be used
-#ifndef _OPENMP
-//No openmp
-//openmp (multithreading) not supported on this system - compiling without openmp support
-#else
-//Use openmp
-#define SGL_OPENMP_SUPP
-#include <omp.h>
-#endif
-
 #include <armadillo>
 #include <Rcpp.h>
 

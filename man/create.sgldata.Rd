@@ -32,6 +32,7 @@ Martin Vincent
 \seealso{
 Other sgldata: \code{\link{prepare.args.sgldata}},
   \code{\link{prepare.args}},
-  \code{\link{rearrange.sgldata}}
+  \code{\link{rearrange.sgldata}},
+  \code{\link{subsample.sgldata}}
 }
 

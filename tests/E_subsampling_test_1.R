@@ -23,10 +23,10 @@ train <- lapply(test, function(s) (1:nrow(x))[-s])
 # create data
 data <- create.sgldata(x, y, weights, sampleGrouping)
 lambda <- sgl_lambda_sequence("sgl_test_dense", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha = alpha, d = d, lambda.min)
-fit1a.sub <- sgl_subsampling("sgl_test_dense", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test, max.threads = 1L)
+fit1a.sub <- sgl_subsampling("sgl_test_dense", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test)
 
 data <- create.sgldata(x, y, weights, sampleGrouping, sparseX = TRUE)
-fit1b.sub <- sgl_subsampling("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test, max.threads = 1L)
+fit1b.sub <- sgl_subsampling("sgl_test_sparse", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test)
 
 # Simple navigate tests
 

@@ -100,41 +100,12 @@ arma::sp_mat get_value(SEXP exp) {
 	SEXP row_idx = VECTOR_ELT(exp, 2);
 	SEXP values = VECTOR_ELT(exp, 3);
 
-	unsigned int n_nonzero = Rf_length(values);
-
-	arma::sp_mat m(n_rows, n_cols);
-
-	if (n_nonzero == 0) {
-		return m;
-	}
-
-	arma::uword* new_row_indices = arma::memory::acquire_chunked < arma::uword > (n_nonzero + 1);
-	double* new_values = arma::memory::acquire_chunked<double>(n_nonzero + 1);
-
-	arma::arrayops::copy(new_values, REAL(values), n_nonzero);
-
-	int * row_ptr = INTEGER(row_idx);
-	for (unsigned int i = 0; i < n_nonzero; ++i) {
-		new_row_indices[i] = static_cast<arma::uword>(row_ptr[i]);
-	}
-
-	new_row_indices[n_nonzero] = 0;
-
-	int * col_ptr = INTEGER(col_ptrs);
-	for (unsigned int i = 0; i < n_cols + 2; ++i) {
-		arma::access::rwp(m.col_ptrs)[i] = static_cast<arma::uword>(col_ptr[i]);
-	}
-
-	arma::memory::release(m.values);
-	arma::memory::release(m.row_indices);
-
-	arma::access::rw(m.values) = new_values;
-	arma::access::rw(m.row_indices) = new_row_indices;
-
-	// Update counts and such.
-	arma::access::rw(m.n_nonzero) = n_nonzero;
-
-	return m;
+	//Create and return sparse matrix
+	return arma::sp_mat(
+		get_value<arma::uvec>(row_idx),
+	 	get_value<arma::uvec>(col_ptrs),
+		get_value<arma::vec>(values),
+		n_rows, n_cols);
 }
 
 

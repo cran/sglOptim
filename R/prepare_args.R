@@ -61,6 +61,18 @@ rearrange <- function(data, covariate.order, ...) UseMethod("rearrange")
 #' @family sgldata
 prepare.args <- function(data, ...) UseMethod("prepare.args")
 
+#' @title Subsample
+#'
+#' @description
+#' Pick out a subsample of an object
+#'
+#' @param data a data object
+#' @param indices a vector of indices to pick out
+#' @param ... not used
+#' @return a data object of the same class as \code{data}
+#' @author Martin Vincent
+#' @export
+subsample <- function(data, indices, ...) UseMethod("subsample")
 
 #' @title Rearrange sgldata
 #'
@@ -80,6 +92,48 @@ rearrange.sgldata <- function(data, covariate.order, ...)
 
 	data$X <- data$X[,covariate.order, drop = FALSE]
 	data$covariate.names <- data$covariate.names[covariate.order]
+
+	return(data)
+}
+
+#' @title Subsample sgldata
+#'
+#' @description
+#' Pick out a subsample of a sgldata object
+#'
+#' @param data  a sgldata object
+#' @param indices a vector of indices to pick out
+#' @param ... not used
+#' @return a sgldata
+#' @author Martin Vincent
+#' @method subsample sgldata
+#' @export
+#' @family sgldata
+subsample.sgldata <- function(data, indices, ...)  {
+
+	data$X <- data$X[indices, ]
+
+	if( is.null(data$Y) ) {
+		# do nothing
+	} else if( is.vector(data$Y) ) {
+		data$Y <- data$Y[indices]
+	} else if( is.matrix(data$Y) ) {
+		data$Y <- data$Y[indices, , drop = FALSE]
+	} else {
+		stop("y is of unknown type")
+	}
+
+	data$sample.names <- data$sample.names[indices]
+
+	if( is.vector(data$W) ) {
+		data$W <- data$W[indices]
+	} else if( is.matrix(data$W) ) {
+		data$W <- data$W[indices,]
+	} else {
+		stop("weights is of unknown type")
+	}
+
+	data$G <- data$G[indices]
 
 	return(data)
 }
@@ -142,7 +196,7 @@ create.sgldata <- function(x, y, weights = NULL, sampleGrouping = NULL, group.na
 		data$Y <- NULL
 	} else if(is.vector(y)) {
 		data$Y <- as.numeric(y)
-	} else if(is.matrix(y)) {
+	} else if( is.matrix(y) ) {
 		data$Y <- apply(y, 2, as.numeric)
 	} else if(sparseY) {
 		data$Y <- as(y, "CsparseMatrix")
@@ -192,12 +246,13 @@ create.sgldata <- function(x, y, weights = NULL, sampleGrouping = NULL, group.na
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}, that is the same dimension as \eqn{\beta}.
 #' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
+#' @param test_data optional test data to be prepared (a sgldata object)
 #' @param ... not used
 #' @method prepare.args sgldata
 #' @export
 #' @family sgldata
 #' @author Martin Vincent
-prepare.args.sgldata <- function(data, parameterGrouping, groupWeights, parameterWeights, alpha, ...) {
+prepare.args.sgldata <- function(data, parameterGrouping, groupWeights, parameterWeights, alpha, test_data = NULL, ...) {
 
 	# If Lasso then ignore grouping
 	if(alpha == 1) {
@@ -205,20 +260,16 @@ prepare.args.sgldata <- function(data, parameterGrouping, groupWeights, paramete
 		groupWeights <- rep(1, data$n.covariate)
 	}
 
-	ncov <- data$n.covarites
-	ngrp <- data$n.groups
+	### Compute block dim
+	block.dim <- data$n.groups*as.integer(table(parameterGrouping))
 
+	### Prepare data
+
+	# Reorder data
 	group.order <- order(parameterGrouping)
-
-	### Reorder data
 	data <- rearrange(data, group.order)
-
 	parameterWeights <- parameterWeights[,group.order, drop = FALSE]
 
-	### Compute block dim
-	block.dim <- ngrp*as.integer(table(parameterGrouping))
-
-	### Prepare data format
 	# sparse X format
 	if(data$sparseX) {
 		data$X <- list(dim(data$X), data$X@p, data$X@i, data$X@x)
@@ -230,13 +281,37 @@ prepare.args.sgldata <- function(data, parameterGrouping, groupWeights, paramete
 	}
 
 	### Create args list
+
 	args <- list()
+
 	args$block.dim <- block.dim
 	args$groupWeights <- groupWeights
 	args$parameterWeights <- parameterWeights
 	args$alpha <- alpha
 	args$data <- data
 	args$group.order <- group.order
+
+	### Prepare test data
+
+	# TODO check data and test_data consistency
+
+	if( ! is.null(test_data) ) {
+
+		# Reorder data
+		test_data <- rearrange(test_data, group.order)
+
+		# sparse X format
+		if(test_data$sparseX) {
+			test_data$X <- list(dim(test_data$X), test_data$X@p, test_data$X@i, test_data$X@x)
+		}
+
+		# sparse Y format
+		if(test_data$sparseY) {
+			test_data$Y <- list(dim(test_data$Y), test_data$Y@p, test_data$Y@i, test_data$Y@x)
+		}
+
+		args$test_data <- test_data
+	}
 
 	return(args)
 }

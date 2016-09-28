@@ -19,6 +19,9 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
+# Tell R that 'task' (used in foreach) is global variable -- R check will complain if not
+globalVariables('task')
+
 #' Generic sparse group lasso subsampling procedure
 #'
 #' Support the use of multiple processors.
@@ -38,7 +41,10 @@
 #' Each item in the list must be vector with the indices of the test samples for the corresponding subsample.
 #' The length of the list must equal the length of the \code{training} list.
 #' @param collapse if \code{TRUE} the results for each subsample will be collapse into one result (this is useful if the subsamples are not overlapping)
-#' @param max.threads the maximal number of threads to be used.
+#' @param max.threads Deprecated (will be removed in 2018),
+#' instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
+#' The maximal number of threads to be used.
+#' @param use_parallel If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}. The user must registre the parallel backend.
 #' @param algorithm.config the algorithm configuration to be used.
 #' @return
 #' \item{responses}{content will depend on the C++ response class}
@@ -48,6 +54,9 @@
 #' @author Martin Vincent
 #' @useDynLib sglOptim, .registration=TRUE
 #' @importFrom utils packageVersion
+#' @importFrom foreach foreach %do% %dopar%
+#' @importFrom doParallel registerDoParallel
+#' @importFrom parallel makeCluster stopCluster
 #' @export
 sgl_subsampling <- function(module_name, PACKAGE,
 	data,
@@ -59,14 +68,17 @@ sgl_subsampling <- function(module_name, PACKAGE,
 	training,
 	test,
 	collapse = FALSE,
-	max.threads = 2,
+	max.threads = NULL,
+	use_parallel = FALSE,
 	algorithm.config = sgl.standard.config) {
 
-	# cast
-	max.threads <- as.integer(max.threads)
+	# deprecated warnings
+	if( ! is.null(max.threads) ) {
+		warning("Argument 'max.threads' is deprecated (will be removed in 2018). \n    Alternative: Registre parallel backend (see package doParallel) and use 'use_parallel = TRUE' ")
+	}
 
-	#Check training and test consistency:
-	if(!is.list(training) | !is.list(test)) {
+	# Check training and test consistency:
+	if( ! is.list(training) | ! is.list(test)) {
 		stop("The arguments traning and test should be lists")
 	}
 
@@ -96,17 +108,89 @@ sgl_subsampling <- function(module_name, PACKAGE,
 		lambda.list <- replicate(length(training), lambda, simplify = FALSE)
 	}
 
-	# Prapare arguments
-	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
-
 	training <- lapply(training, sort)
 	test <- lapply(test, sort)
 
-	training.0 <- lapply(training, function(x) as.integer(x - 1))
-	test.0 <- lapply(test, function(x) as.integer(x - 1))
-
 	call_sym <- paste(module_name, "sgl_subsampling", sep="_")
-	res <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, args$alpha, lambda.list, training.0, test.0, collapse, max.threads, algorithm.config)
+
+	# Registre parallel backend
+	# This is only to make max.threads work -  remov in 2018
+	if( ! is.null(max.threads) && max.threads > 1) {
+		cl <- makeCluster(max.threads)
+		registerDoParallel(cl)
+	}
+
+	if( use_parallel || ( ! is.null(max.threads) && max.threads != 1 ) ) {
+
+		rawres <- foreach(task=1:length(training),
+			.packages = PACKAGE) %dopar% {
+
+           test_data <- subsample(data, test[[task]])
+			train_data <- subsample(data, training[[task]])
+
+			# Prapare arguments
+			args <- prepare.args(
+				data = train_data,
+				parameterGrouping = parameterGrouping,
+				groupWeights = groupWeights,
+				parameterWeights = parameterWeights,
+				alpha = alpha,
+				test_data = test_data)
+
+			.Call(call_sym, PACKAGE = PACKAGE,
+				args$data,
+				args$test_data,
+				args$block.dim,
+				args$groupWeights,
+				args$parameterWeights,
+				args$alpha,
+				lambda.list[[task]],
+				algorithm.config)
+			}
+
+	} else {
+
+		rawres <- foreach(task=1:length(training)) %do% {
+
+       test_data <- subsample(data, test[[task]])
+	    train_data <- subsample(data, training[[task]])
+
+		# Prapare arguments
+		args <- prepare.args(
+			data = train_data,
+			parameterGrouping = parameterGrouping,
+			groupWeights = groupWeights,
+			parameterWeights = parameterWeights,
+			alpha = alpha,
+			test_data = test_data)
+
+		.Call(call_sym, PACKAGE = PACKAGE,
+				args$data,
+				args$test_data,
+				args$block.dim,
+				args$groupWeights,
+				args$parameterWeights,
+				args$alpha,
+				lambda.list[[task]],
+				algorithm.config)
+			}
+	}
+
+	if( ! is.null(max.threads) && max.threads > 1) {
+ 		stopCluster(cl)
+	}
+
+	# formating responses
+	res <- list()
+
+	res$responses <- .format_responses(
+		rawres,
+		collapse,
+		length(training),
+		length(lambda))
+
+	res$features <- t(sapply(rawres, function(x) x$features))
+	res$parameters <- t(sapply(rawres, function(x) x$parameters))
 
 	# Sample names
 	sample.names <- data$sample.names
@@ -127,7 +211,7 @@ sgl_subsampling <- function(module_name, PACKAGE,
 	rownames(res$features) <- paste("subsample", 1:length(training))
 	rownames(res$parameters) <- paste("subsample", 1:length(training))
 
-	res$lambda <- lambda
+	res$lambda <- lambda.list
 
 	# Set version, type and class and return
 	res$sglOptim_version <- packageVersion("sglOptim")
@@ -135,6 +219,54 @@ sgl_subsampling <- function(module_name, PACKAGE,
 	class(res) <- "sgl"
 
 	return(res)
+}
+
+.format_responses <- function(x, collapse, n_subsamples, n_lambda) {
+	if( ! collapse) {
+
+		r <- lapply(1:length(x[[1]]$responses), function(k)
+
+			if(is.list(x[[1]]$responses[[k]])) {
+
+			 return( lapply(1:n_subsamples,
+					function(i) lapply(1:n_lambda,
+						function(j) x[[i]]$responses[[k]][[j]])))
+
+			} else {
+
+				return( lapply(1:n_subsamples,
+							function(j) x[[j]]$responses[[k]]) )
+			})
+
+	} else {
+
+		r <- lapply(1:length(x[[1]]$responses), function(k)
+
+			if (is.list(x[[1]]$responses[[k]])) {
+
+			 return( lapply(1:n_lambda,
+					function(i) .collapse_responses(lapply(1:n_subsamples,
+						function(j) x[[j]]$responses[[k]][[i]]))) )
+
+			} else {
+
+				return( .collapse_responses(lapply(1:n_subsamples,
+							function(j) x[[j]]$responses[[k]])) )
+
+			})
+	}
+
+	names(r) <- names(x[[1]]$responses)
+
+	return(r)
+}
+
+.collapse_responses <- function(responses) {
+	if(is.matrix(responses[[1]])) {
+		return( do.call(cbind, responses) )
+	} else {
+		stop("unknown response class")
+	}
 }
 
 .set_sample_names <- function(response, sample.names) {
@@ -158,7 +290,7 @@ sgl_subsampling <- function(module_name, PACKAGE,
 		return(response)
 	}
 
-	stop("Unknown response type")
+	stop("Unknown response class")
 
 }
 
@@ -180,5 +312,5 @@ sgl_subsampling <- function(module_name, PACKAGE,
 		return(response[sample.order])
 	}
 
-	stop("Unknown response type")
+	stop("Unknown response class")
 }

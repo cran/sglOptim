@@ -68,16 +68,14 @@ public:
 	template<typename Predictor>
 
 		boost::tuple<
-			arma::field<arma::field<typename Predictor::response_type> >,
-			natural_matrix,
-			natural_matrix>
+			arma::field<typename Predictor::response_type>,
+			natural_vector,
+			natural_vector>
 
-		subsampling(
+		subsamplerun(
 			Predictor const& predictor,
-			vector_field const& lambda_sequence,
-      natural_vector_field const& training_samples,
-      natural_vector_field const& test_samples,
-			natural const number_of_threads) const;
+			vector const& lambda_sequence,
+    	typename ObjectiveFunctionType::data_type const& test_data) const;
 
 	//Lambda
 
@@ -180,56 +178,79 @@ inline sgl::natural Interface<ObjectiveFunctionType>::optimize(
 template<typename ObjectiveFunctionType>
 template<typename Predictor>
 inline boost::tuple<
-				arma::field<arma::field<typename Predictor::response_type> >,
-				sgl::natural_matrix,
-				sgl::natural_matrix>
+				arma::field<typename Predictor::response_type>,
+				sgl::natural_vector,
+				sgl::natural_vector>
 
-					Interface<ObjectiveFunctionType>::subsampling(
-
+					Interface<ObjectiveFunctionType>::subsamplerun(
 						Predictor const& predictor,
-						sgl::vector_field const& lambda_sequence,
-    				natural_vector_field const& training_samples,
-    				natural_vector_field const& test_samples,
-						sgl::natural const number_of_threads) const {
+						sgl::vector const& lambda_sequence,
+						typename ObjectiveFunctionType::data_type const& test_data) const {
 
 	//Domain checks
-	for(index i = 0; i < lambda_sequence.n_elem; ++i) {
-		if ( ! sgl::is_decreasing(lambda_sequence(i))
-			|| ! sgl::is_positive(lambda_sequence(i))) {
+	if ( ! sgl::is_decreasing(lambda_sequence)
+			|| ! sgl::is_positive(lambda_sequence) ) {
 
-			throw std::domain_error(
-					"subsampling : the lambda sequence must be decreasing and positive");
-			}
+			throw std::domain_error("subsamplerun : the lambda sequence must be decreasing and positive");
 	}
 
-	if (training_samples.n_elem != test_samples.n_elem) {
+	//length of lambda sequence
+	sgl::index len_lambda = lambda_sequence.n_elem;
 
-		throw std::domain_error(
-				"subsampling : number of training and test subsamples do not match");
+	//result containers
+	arma::field<typename Predictor::response_type>
+		response_field(test_data.data_matrix.n_rows, len_lambda);
+
+	sgl::natural_vector number_of_features(len_lambda);
+	sgl::natural_vector number_of_parameters(len_lambda);
+
+ 	typename ObjectiveFunctionType::instance_type
+		objective(objective_type.create_instance(sgl.setup));
+
+	//Fit
+	sgl::parameter x(sgl.setup);
+	sgl::parameter x0(sgl.setup);
+	sgl::vector gradient(sgl.setup.dim);
+
+	//Start at zero
+	x.zeros();
+	x0.zeros();
+	objective.at_zero();
+	gradient = objective.gradient();
+
+	//Lambda loop
+	sgl::natural lambda_index = 0;
+
+	while (true) {
+
+		// Run single opt
+		sgl::numeric const lambda = lambda_sequence(lambda_index);
+	 	optimizer.optimize_single(x, x0, gradient, objective,	lambda);
+
+		//set number of features / parameters
+		number_of_features(lambda_index) = x.n_nonzero_blocks;
+		number_of_parameters(lambda_index) = x.n_nonzero;
+
+		//Predict
+		response_field.col(lambda_index) = predictor.predict(test_data, x);
+
+		//next lambda
+		++lambda_index;
+
+	 	if (lambda_index >= len_lambda) {
+			//No more lambda values - exit
+			break;
+		}
+
+		//Go one step back, (avoid computing the gradient) - hence start at x0
+		x = x0;
+		objective.at(x0);
 	}
 
-	if(number_of_threads > 1) {
-	#ifndef SGL_OPENMP_SUPP
-			report_warning("Openmp not supported -- will only use one thread");
-	#else
-		#ifndef SGL_USE_OPENMP
-			#define SGL_USE_OPENMP
-		#endif
-
-		#include"subsampling.h"
-
-	#endif
-
-		// this point will not be reached
-	}
-
-	#ifdef SGL_USE_OPENMP
-	#undef SGL_USE_OPENMP
-	#endif
-	//No openmp
-	#include"subsampling.h"
-
-	// this point will not be reached
+	return boost::make_tuple(
+		response_field,
+		number_of_features,
+		number_of_parameters);
 }
 
 #endif /* INTERFACE_BASIC_H_ */

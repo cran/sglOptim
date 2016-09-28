@@ -22,12 +22,20 @@
 #endif
 
 extern "C" {
-SEXP R_FUN_NAME(sgl_test, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_blockWeights,
-		SEXP r_parameterWeights, SEXP r_config);
+SEXP R_FUN_NAME(sgl_test, MODULE_NAME)(
+		SEXP r_data,
+		SEXP r_block_dim,
+		SEXP r_blockWeights,
+		SEXP r_parameterWeights,
+		SEXP r_config);
 }
 
-SEXP FUN_NAME(sgl_test, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_blockWeights,
-		SEXP r_parameterWeights, SEXP r_config) {
+SEXP FUN_NAME(sgl_test, MODULE_NAME)(
+		SEXP r_data,
+		SEXP r_block_dim,
+		SEXP r_blockWeights,
+		SEXP r_parameterWeights,
+		SEXP r_config) {
 
 	// Configuration
 	rList rlist_config(r_config);
@@ -56,15 +64,21 @@ SEXP FUN_NAME(sgl_test, MODULE_NAME)(SEXP r_data, SEXP r_block_dim, SEXP r_block
   return rObject(problem_count);
 }
 
-SEXP R_FUN_NAME(sgl_test, MODULE_NAME)(SEXP r_data,
-    SEXP r_block_dim, SEXP r_blockWeights,
-		SEXP r_parameterWeights, SEXP r_config) {
+SEXP R_FUN_NAME(sgl_test, MODULE_NAME)(
+		SEXP r_data,
+    SEXP r_block_dim,
+		SEXP r_blockWeights,
+		SEXP r_parameterWeights,
+		SEXP r_config) {
 
 	try {
 
-		return FUN_NAME(sgl_test, MODULE_NAME)(r_data,
-      r_block_dim, r_blockWeights,
-      r_parameterWeights, r_config);
+		return FUN_NAME(sgl_test, MODULE_NAME)(
+			r_data,
+      r_block_dim,
+			r_blockWeights,
+      r_parameterWeights,
+			r_config);
 
 		//Catch unhandled exceptions
 

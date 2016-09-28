@@ -5,7 +5,7 @@
 \title{Prepare sgl function arguments}
 \usage{
 \method{prepare.args}{sgldata}(data, parameterGrouping, groupWeights,
-  parameterWeights, alpha, ...)
+  parameterWeights, alpha, test_data = NULL, ...)
 }
 \arguments{
 \item{data}{a sgldata object}
@@ -18,6 +18,8 @@
 
 \item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
 
+\item{test_data}{optional test data to be prepared (a sgldata object)}
+
 \item{...}{not used}
 }
 \description{
@@ -29,6 +31,7 @@ Martin Vincent
 \seealso{
 Other sgldata: \code{\link{create.sgldata}},
   \code{\link{prepare.args}},
-  \code{\link{rearrange.sgldata}}
+  \code{\link{rearrange.sgldata}},
+  \code{\link{subsample.sgldata}}
 }
 

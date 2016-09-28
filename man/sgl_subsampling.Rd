@@ -6,7 +6,8 @@
 \usage{
 sgl_subsampling(module_name, PACKAGE, data, parameterGrouping, groupWeights,
   parameterWeights, alpha, lambda, training, test, collapse = FALSE,
-  max.threads = 2, algorithm.config = sgl.standard.config)
+  max.threads = NULL, use_parallel = FALSE,
+  algorithm.config = sgl.standard.config)
 }
 \arguments{
 \item{module_name}{reference to objective specific C++ routines.}
@@ -35,7 +36,11 @@ The length of the list must equal the length of the \code{training} list.}
 
 \item{collapse}{if \code{TRUE} the results for each subsample will be collapse into one result (this is useful if the subsamples are not overlapping)}
 
-\item{max.threads}{the maximal number of threads to be used.}
+\item{max.threads}{Deprecated (will be removed in 2018),
+instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
+The maximal number of threads to be used.}
+
+\item{use_parallel}{If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}. The user must registre the parallel backend.}
 
 \item{algorithm.config}{the algorithm configuration to be used.}
 }

@@ -460,7 +460,7 @@ inline void SglOptimizer::optimize_quadratic(
 
 		CONVERGENCE_CHECK_INCREASE;
 
-		Progress::check_abort();
+	//FIXME	Progress::check_abort();
 
 		#ifdef SGL_DEBUG_INFO_GB_OPT
 			sgl::natural computed_gbs = 0;

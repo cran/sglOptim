@@ -36,6 +36,7 @@ prepare.args.sgldata
 
 Other sgldata: \code{\link{create.sgldata}},
   \code{\link{prepare.args.sgldata}},
-  \code{\link{rearrange.sgldata}}
+  \code{\link{rearrange.sgldata}},
+  \code{\link{subsample.sgldata}}
 }
 

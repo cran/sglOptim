@@ -24,10 +24,9 @@ lambda <- sgl_lambda_sequence("sgl_test_dense", "sglOptim", data, covariateGroup
 test <- replicate(2, 1:20, simplify = FALSE)
 train <- lapply(test, function(s) (1:nrow(x))[-s])
 
-if(sgl.c.config()$omp.supported) {
-	threads = 2L
-} else {
-	threads = 1L
-}
-	
-fit1a.sub <- sgl_subsampling("sgl_test_dense", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test, max.threads = threads)
+cl <- makeCluster(2)
+registerDoParallel(cl)
+
+fit1a.sub <- sgl_subsampling("sgl_test_dense", "sglOptim", data, covariateGrouping, groupWeights, parameterWeights, alpha, lambda, train, test, use_parallel = TRUE)
+
+stopCluster(cl)

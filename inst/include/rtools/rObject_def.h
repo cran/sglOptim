@@ -26,19 +26,27 @@ SEXP protect(bool do_protect, SEXP exp) {
 
 //Copy constructor
 rObject::rObject(rObject const& s) :
-		exp(s.exp), number_of_protects(s.number_of_protects), unprotect_on_destruction(
-				s.unprotect_on_destruction), exp_counter(s.exp_counter) {
+		exp(s.exp),
+		number_of_protects(s.number_of_protects),
+		unprotect_on_destruction(s.unprotect_on_destruction),
+		exp_counter(s.exp_counter) {
 
 	(*exp_counter)++;
 
 }
+
 rObject rObject::operator=(rObject const& s) {
 
 	this->exp = s.getSEXP();
-	const_cast<int&>(this->number_of_protects) = s.n_protects();
-	const_cast<bool*&>(this->unprotect_on_destruction) =
-			s.unprotect_on_destruction;
-	const_cast<int*&>(this->exp_counter) = s.exp_counter;
+
+	const_cast<int&>(this->number_of_protects)
+		= s.n_protects();
+
+	const_cast<bool*&>(this->unprotect_on_destruction)
+	 	= s.unprotect_on_destruction;
+
+	const_cast<int*&>(this->exp_counter)
+	 	= s.exp_counter;
 
 	(*exp_counter)++;
 
@@ -167,7 +175,7 @@ rObject::rObject(arma::Mat<char> const& m, bool no_protect) :
     INTEGER(matrixDim)[0] = m.n_rows;
     INTEGER(matrixDim)[1] = m.n_cols;
 
-    exp = protect(!no_protect, Rf_allocVector(INTSXP, m.n_rows * m.n_cols));
+    exp = protect( ! no_protect, Rf_allocVector(INTSXP, m.n_rows * m.n_cols));
 
     //Copy data
     copy_cast(INTEGER(exp), m.mem, m.n_elem);
@@ -372,11 +380,14 @@ rObject::~rObject() {
 
 		//Last exp holder
 
-		delete exp_counter;
-
 		if (*unprotect_on_destruction) {
 			UNPROTECT(number_of_protects);
 		}
+
+		//clean up
+		delete exp_counter;
+		delete unprotect_on_destruction;
+
 	}
 
 	else {
