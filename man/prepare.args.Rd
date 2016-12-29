@@ -12,12 +12,12 @@ prepare.args(data, ...)
 \item{...}{additional parameters}
 }
 \value{
-\item{block.dim}{a vector of length \eqn{m}, containing the dimensions \eqn{d_J} of the groups (i.e. the number of parameters in the groups)}
+\item{block_dim}{a vector of length \eqn{m}, containing the dimensions \eqn{d_J} of the groups (i.e. the number of parameters in the groups)}
 \item{groupWeights}{a vector of length \eqn{m}, containing the group weights}
 \item{parameterWeights}{a matrix of dimension \eqn{q \times p}, containing the parameter weights}
 \item{alpha}{the \eqn{\alpha} value}
 \item{data}{the data parsed to the loss module}
-\item{group.order}{original order of the columns of \eqn{\beta}. Before sgl routines return \eqn{\beta} will be reorganized according to this order.}
+\item{group_order}{original order of the columns of \eqn{\beta}. Before sgl routines return \eqn{\beta} will be reorganized according to this order.}
 }
 \description{
 Compute and prepare the sgl call arguments for the objective function
@@ -34,8 +34,10 @@ Martin Vincent
 \seealso{
 prepare.args.sgldata
 
-Other sgldata: \code{\link{create.sgldata}},
+Other sgldata: \code{\link{add_data.sgldata}},
+  \code{\link{create.sgldata}},
   \code{\link{prepare.args.sgldata}},
+  \code{\link{prepare_data}},
   \code{\link{rearrange.sgldata}},
   \code{\link{subsample.sgldata}}
 }

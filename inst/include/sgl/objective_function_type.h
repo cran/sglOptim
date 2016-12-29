@@ -1,15 +1,15 @@
 #ifndef OBJECTIVEFUNCTIONTYPE_H_
 #define OBJECTIVEFUNCTIONTYPE_H_
 
-template< typename E, typename D>
+template< typename E >
 class ObjectiveFunctionType {
 
 public:
 
-	D const& data;
-
-	typedef D data_type;
+	typedef typename E::data_type data_type;
 	typedef E instance_type;
+
+	data_type const& data;
 
 	ObjectiveFunctionType(data_type const& data) : data(data) {}
 
@@ -18,8 +18,5 @@ public:
 	}
 
 };
-
-
-
 
 #endif /* OBJECTIVEFUNCTIONTYPE_H_ */

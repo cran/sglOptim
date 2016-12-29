@@ -17,7 +17,9 @@ the number of models used when fitting the object \code{x}.
 \description{
 Generic function for counting the number of models used for fitting the object.
 Returns the number of models used for fitting.
-However, note that the objects returned by \code{msgl.cv} and {msgl.subsampling} does not contain any models even though \code{nmod} returns a nonzero number.
+However, note that the objects returned by \code{msgl.cv} and
+\code{msgl.subsampling} does not contain any models even though
+\code{nmod} returns a nonzero number.
 }
 \author{
 Martin Vincent

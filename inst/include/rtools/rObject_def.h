@@ -37,20 +37,19 @@ rObject::rObject(rObject const& s) :
 
 rObject rObject::operator=(rObject const& s) {
 
-	this->exp = s.getSEXP();
+  this->exp = s.getSEXP();
 
-	const_cast<int&>(this->number_of_protects)
-		= s.n_protects();
+  const_cast<int&>(this->number_of_protects) = s.n_protects();
 
-	const_cast<bool*&>(this->unprotect_on_destruction)
-	 	= s.unprotect_on_destruction;
+  delete unprotect_on_destruction;
+  const_cast<bool*&>(this->unprotect_on_destruction)= s.unprotect_on_destruction;
 
-	const_cast<int*&>(this->exp_counter)
-	 	= s.exp_counter;
+  delete exp_counter;
+  const_cast<int*&>(this->exp_counter) = s.exp_counter;
 
-	(*exp_counter)++;
+  (*exp_counter)++;
 
-	return *this;
+  return *this;
 }
 
 rObject::rObject(SEXP exp) :
@@ -88,15 +87,27 @@ rObject::rObject(double value, bool no_protect) :
 }
 
 rObject::rObject(int value, bool no_protect) :
-        number_of_protects(no_protect ? 0 : 1),
-				unprotect_on_destruction(new bool),
-				exp_counter(new int) {
+  number_of_protects(no_protect ? 0 : 1),
+	unprotect_on_destruction(new bool),
+	exp_counter(new int) {
 
-    *this->unprotect_on_destruction = ! no_protect;
-    *exp_counter = 1;
+	* this->unprotect_on_destruction = ! no_protect;
+	* exp_counter = 1;
 
-    exp = protect(!no_protect, Rf_allocVector(INTSXP, 1));
-    INTEGER(exp)[0] = value;
+	exp = protect(!no_protect, Rf_allocVector(INTSXP, 1));
+	INTEGER(exp)[0] = value;
+}
+
+rObject::rObject(bool value, bool no_protect) :
+  number_of_protects(no_protect ? 0 : 1),
+	unprotect_on_destruction(new bool),
+	exp_counter(new int) {
+
+	* this->unprotect_on_destruction = ! no_protect;
+	* exp_counter = 1;
+
+	exp = protect(!no_protect, Rf_allocVector(LGLSXP, 1));
+	LOGICAL(exp)[0] = value;
 }
 
 rObject::rObject(arma::Mat<double> const& m, bool no_protect) :
@@ -162,26 +173,6 @@ rObject::rObject(arma::Mat<int> const& m, bool no_protect) :
     Rf_setAttrib(exp, R_DimSymbol, matrixDim);
 }
 
-rObject::rObject(arma::Mat<char> const& m, bool no_protect) :
-        number_of_protects(no_protect ? 0 : 2),
-				unprotect_on_destruction(new bool),
-				exp_counter(new int) {
-
-    *this->unprotect_on_destruction = ! no_protect;
-    *exp_counter = 1;
-
-    SEXP matrixDim;
-    matrixDim = protect(!no_protect, Rf_allocVector(INTSXP, 2));
-    INTEGER(matrixDim)[0] = m.n_rows;
-    INTEGER(matrixDim)[1] = m.n_cols;
-
-    exp = protect( ! no_protect, Rf_allocVector(INTSXP, m.n_rows * m.n_cols));
-
-    //Copy data
-    copy_cast(INTEGER(exp), m.mem, m.n_elem);
-
-    Rf_setAttrib(exp, R_DimSymbol, matrixDim);
-}
 
 rObject::rObject(arma::Col<double> const& v, bool no_protect) :
 		number_of_protects(no_protect ? 0 : 1),
@@ -226,20 +217,6 @@ rObject::rObject(arma::Col<int> const& v, bool no_protect) :
     arma::arrayops::copy(INTEGER(exp), v.mem, v.n_elem);
 }
 
-rObject::rObject(arma::Col<char> const& v, bool no_protect) :
-        number_of_protects(no_protect ? 0 : 1),
-				unprotect_on_destruction(new bool),
-				exp_counter(new int) {
-
-    *this->unprotect_on_destruction = ! no_protect;
-    *exp_counter = 1;
-
-    exp = protect(!no_protect, Rf_allocVector(INTSXP, v.n_elem));
-
-    //Copy data
-    copy_cast(INTEGER(exp), v.mem, v.n_elem);
-}
-
 rObject::rObject(std::vector<int> const& v, bool no_protect) :
         number_of_protects(no_protect ? 0 : 1),
 				unprotect_on_destruction(new bool),
@@ -266,7 +243,7 @@ rObject::rObject(std::vector<std::string> const& v, bool no_protect) :
 
 	    //Copy data
 	    for(unsigned int i = 0; i < v.size(); i++)  {
-	    	SET_STRING_ELT(exp, i, mkChar(v[i].c_str()));
+	    	SET_STRING_ELT(exp, i, Rf_mkChar(v[i].c_str()));
 	    }
 }
 
@@ -281,7 +258,7 @@ rObject::rObject(std::string const& v, bool no_protect) :
 
 	    exp = protect(!no_protect, Rf_allocVector(STRSXP, 1));
 
-	    SET_STRING_ELT(exp, 0, mkChar(v.c_str()));
+	    SET_STRING_ELT(exp, 0, Rf_mkChar(v.c_str()));
 }
 
 rObject::rObject(arma::sp_mat const& m, bool no_protect) :
@@ -294,7 +271,7 @@ rObject::rObject(arma::sp_mat const& m, bool no_protect) :
 
 	exp = protect(!no_protect, Rf_allocVector(VECSXP, 4)); // Creating a list with 4 elements
 
-	//TODO set list element names
+	//NOTE set list element names
 
 	SEXP dim;
 	dim = protect(!no_protect, Rf_allocVector(INTSXP, 2));
@@ -317,25 +294,22 @@ rObject::rObject(arma::sp_mat const& m, bool no_protect) :
 
 template<typename T>
 rObject::rObject(arma::field<T> const& field, bool no_protect) :
-        number_of_protects(no_protect ? 0 : 1),
-				unprotect_on_destruction(new bool),
-				exp_counter(new int) {
+  number_of_protects(no_protect ? 0 : 1),
+  unprotect_on_destruction(new bool),
+  exp_counter(new int) {
 
-    *this->unprotect_on_destruction = ! no_protect;
-    *exp_counter = 1;
+  *this->unprotect_on_destruction = ! no_protect;
+  *exp_counter = 1;
 
-    exp = protect(!no_protect, Rf_allocVector(VECSXP, field.n_elem)); // Creating a list with n_elem elements
+  exp = protect(!no_protect, Rf_allocVector(VECSXP, field.n_elem)); // Creating a list with n_elem elements
 
-    //Construct list
-    for (unsigned int i = 0; i < field.n_elem; i++) {
+  //Construct list
+  for (unsigned int i = 0; i < field.n_elem; i++) {
 
-				// attaching
-				rObject tmp(field(i));
-        SET_VECTOR_ELT(exp, i, tmp);
-
-				tmp.takeover_protection();
-    }
-
+    // attaching
+    rObject tmp(field(i));
+    SET_VECTOR_ELT(exp, i, tmp);
+  }
 }
 
 rObject::rObject(rList const& list, bool no_protect) :
@@ -366,7 +340,8 @@ rObject::rObject(rList const& list, bool no_protect) :
 
 }
 
-rObject::rObject(elements const& elms, bool no_protect) :
+template<typename T>
+rObject::rObject(elements<T> const& elms, bool no_protect) :
 	number_of_protects(0),
 	unprotect_on_destruction(new bool),
 	exp_counter(new int) {

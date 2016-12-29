@@ -44,52 +44,138 @@
 #include <sgl.h>
 
 //Objective
-#include "test_objective.h" //linear objective
+#include "test_objective_linear.h" //linear objective
+#include "test_objective_error.h" //linear objective
 #include "pkg_c_config.h"
 
 /**********************************
  *
- *  Dense test module
+ *  X: dense
+ *	Y: dense
+ *	W: dense
+ *  Hessian: diagonal
  *
  *********************************/
 
 // Module name
-#define MODULE_NAME sgl_test_dense
+#define MODULE linear_test_diagonal_w
+#define MATRIX sgl::matrix
+#include "create_module.h"
 
-#define OBJECTIVE linear_test
+#undef MODULE
+#define MODULE linear_test_identity
+#include "create_module.h"
 
-#include <sgl/RInterface/sgl_lambda_seq.h>
-#include <sgl/RInterface/sgl_fit.h>
-#include <sgl/RInterface/sgl_test.h>
+#undef MODULE
+#define MODULE linear_test_full
+#include "create_module.h"
 
-#define PREDICTOR sgl::LinearPredictor < sgl::matrix , sgl::LinearResponse >
+#undef MODULE
+#define MODULE linear_test_block_diagonal
+#include "create_module.h"
 
-#include <sgl/RInterface/sgl_predict.h>
-#include <sgl/RInterface/sgl_subsampling.h>
-
-/*********************************
+/**********************************
  *
- *  Sparse test module
+ *  X: dense
+ *	Y: sparse
+ *	W: dense
+ *  Hessian: identity
  *
  *********************************/
-// Reset macros
-#undef MODULE_NAME
-#undef OBJECTIVE
-#undef PREDICTOR
+
+ #undef MODULE
+ #define MODULE linear_test_diagonal_w_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_identity_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_full_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_block_diagonal_spy
+ #include "create_module.h"
+
+
+/**********************************
+ *
+ *  X: sparse
+ *	Y: dense
+ *	W: dense
+ *  Hessian: diagonal
+ *
+ *********************************/
+
+ #undef MATRIX
+ #define MATRIX sgl::sparse_matrix
+
+ #undef MODULE
+ #define MODULE linear_test_diagonal_w_spx
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_identity_spx
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_full_spx
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_block_diagonal_spx
+ #include "create_module.h"
+
+
+/**********************************
+ *
+ *  X: sparse
+ *	Y: sparse
+ *	W: dense
+ *  Hessian: diagonal
+ *
+ *********************************/
+
+ #undef MODULE
+ #define MODULE linear_test_diagonal_w_spx_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_identity_spx_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_full_spx_spy
+ #include "create_module.h"
+
+ #undef MODULE
+ #define MODULE linear_test_block_diagonal_spx_spy
+ #include "create_module.h"
+
+
+/**********************************
+ *
+ *  X: dense
+ *	Y: dense
+ *	W: dense
+ *  Hessian: diagonal error
+ *
+ *********************************/
+ // Reset macros
+ #undef MODULE_NAME
+ #undef OBJECTIVE
+ #undef PREDICTOR
 
 // Module name
-#define MODULE_NAME sgl_test_sparse
+#define MODULE_NAME linear_test_diagonal_error_w
 
-#define OBJECTIVE linear_test_spx
+#define OBJECTIVE linear_test_diagonal_error_w
 
 #include <sgl/RInterface/sgl_lambda_seq.h>
 #include <sgl/RInterface/sgl_fit.h>
 #include <sgl/RInterface/sgl_test.h>
-
-#define PREDICTOR sgl::LinearPredictor < sgl::sparse_matrix , sgl::LinearResponse >
-
-#include <sgl/RInterface/sgl_predict.h>
-#include <sgl/RInterface/sgl_subsampling.h>
 
 /* **********************************
  *
@@ -100,12 +186,130 @@
 #include <R_ext/Rdynload.h>
 
 static const R_CallMethodDef sglCallMethods[] = {
-		SGL_LAMBDA(sgl_test_dense), SGL_LAMBDA(sgl_test_sparse),
-		SGL_FIT(sgl_test_dense), SGL_FIT(sgl_test_sparse),
-		SGL_PREDICT(sgl_test_dense), SGL_PREDICT(sgl_test_sparse),
-    SGL_SUBSAMPLING(sgl_test_dense), SGL_SUBSAMPLING(sgl_test_sparse),
-		SGL_TEST(sgl_test_dense), SGL_TEST(sgl_test_sparse),
-		{NULL}};
+
+	// Core functionality testing
+	SGL_LAMBDA(linear_test_diagonal_w),
+	SGL_LAMBDA(linear_test_diagonal_w_spx),
+	SGL_LAMBDA(linear_test_diagonal_w_spy),
+	SGL_LAMBDA(linear_test_diagonal_w_spx_spy),
+	SGL_LAMBDA(linear_test_identity),
+	SGL_LAMBDA(linear_test_identity_spx),
+	SGL_LAMBDA(linear_test_identity_spy),
+	SGL_LAMBDA(linear_test_identity_spx_spy),
+  SGL_LAMBDA(linear_test_full),
+	SGL_LAMBDA(linear_test_full_spx),
+	SGL_LAMBDA(linear_test_full_spy),
+	SGL_LAMBDA(linear_test_full_spx_spy),
+  SGL_LAMBDA(linear_test_block_diagonal),
+  SGL_LAMBDA(linear_test_block_diagonal_spx),
+  SGL_LAMBDA(linear_test_block_diagonal_spy),
+  SGL_LAMBDA(linear_test_block_diagonal_spx_spy),
+
+  SGL_LAMBDA(linear_test_diagonal_error_w),
+
+	SGL_FIT(linear_test_diagonal_w),
+	SGL_FIT(linear_test_diagonal_w_spx),
+	SGL_FIT(linear_test_diagonal_w_spy),
+	SGL_FIT(linear_test_diagonal_w_spx_spy),
+	SGL_FIT(linear_test_identity),
+	SGL_FIT(linear_test_identity_spx),
+	SGL_FIT(linear_test_identity_spy),
+	SGL_FIT(linear_test_identity_spx_spy),
+  SGL_FIT(linear_test_full),
+	SGL_FIT(linear_test_full_spx),
+	SGL_FIT(linear_test_full_spy),
+	SGL_FIT(linear_test_full_spx_spy),
+  SGL_FIT(linear_test_block_diagonal),
+  SGL_FIT(linear_test_block_diagonal_spx),
+  SGL_FIT(linear_test_block_diagonal_spy),
+  SGL_FIT(linear_test_block_diagonal_spx_spy),
+
+  SGL_FIT(linear_test_diagonal_error_w),
+
+	SGL_PREDICT(linear_test_diagonal_w),
+	SGL_PREDICT(linear_test_diagonal_w_spx),
+	SGL_PREDICT(linear_test_diagonal_w_spy),
+	SGL_PREDICT(linear_test_diagonal_w_spx_spy),
+	SGL_PREDICT(linear_test_identity),
+	SGL_PREDICT(linear_test_identity_spx),
+	SGL_PREDICT(linear_test_identity_spy),
+	SGL_PREDICT(linear_test_identity_spx_spy),
+  SGL_PREDICT(linear_test_full),
+	SGL_PREDICT(linear_test_full_spx),
+	SGL_PREDICT(linear_test_full_spy),
+	SGL_PREDICT(linear_test_full_spx_spy),
+  SGL_PREDICT(linear_test_block_diagonal),
+  SGL_PREDICT(linear_test_block_diagonal_spx),
+  SGL_PREDICT(linear_test_block_diagonal_spy),
+  SGL_PREDICT(linear_test_block_diagonal_spx_spy),
+
+	SGL_SUBSAMPLING(linear_test_diagonal_w),
+	SGL_SUBSAMPLING(linear_test_diagonal_w_spx),
+	SGL_SUBSAMPLING(linear_test_diagonal_w_spy),
+	SGL_SUBSAMPLING(linear_test_diagonal_w_spx_spy),
+	SGL_SUBSAMPLING(linear_test_identity),
+	SGL_SUBSAMPLING(linear_test_identity_spx),
+	SGL_SUBSAMPLING(linear_test_identity_spy),
+	SGL_SUBSAMPLING(linear_test_identity_spx_spy),
+  SGL_SUBSAMPLING(linear_test_full),
+  SGL_SUBSAMPLING(linear_test_full_spx),
+  SGL_SUBSAMPLING(linear_test_full_spy),
+  SGL_SUBSAMPLING(linear_test_full_spx_spy),
+  SGL_SUBSAMPLING(linear_test_block_diagonal),
+  SGL_SUBSAMPLING(linear_test_block_diagonal_spx),
+  SGL_SUBSAMPLING(linear_test_block_diagonal_spy),
+  SGL_SUBSAMPLING(linear_test_block_diagonal_spx_spy),
+
+	SGL_TEST(linear_test_diagonal_w),
+	SGL_TEST(linear_test_diagonal_w_spx),
+	SGL_TEST(linear_test_diagonal_w_spy),
+	SGL_TEST(linear_test_diagonal_w_spx_spy),
+	SGL_TEST(linear_test_identity),
+	SGL_TEST(linear_test_identity_spx),
+	SGL_TEST(linear_test_identity_spy),
+	SGL_TEST(linear_test_identity_spx_spy),
+  SGL_TEST(linear_test_full),
+  SGL_TEST(linear_test_full_spx),
+  SGL_TEST(linear_test_full_spy),
+  SGL_TEST(linear_test_full_spx_spy),
+  SGL_TEST(linear_test_block_diagonal),
+  SGL_TEST(linear_test_block_diagonal_spx),
+  SGL_TEST(linear_test_block_diagonal_spy),
+  SGL_TEST(linear_test_block_diagonal_spx_spy),
+
+  SGL_TEST(linear_test_diagonal_error_w),
+
+	// rtools testing
+	RTOOLS_TEST(double),
+	RTOOLS_TEST(int),
+	RTOOLS_TEST(u32),
+	RTOOLS_TEST(string),
+	RTOOLS_TEST(bool),
+
+	RTOOLS_TEST(mat_double),
+  RTOOLS_TEST(mat_u32),
+  RTOOLS_TEST(mat_int),
+  RTOOLS_TEST(col_double),
+	RTOOLS_TEST(col_u32),
+	RTOOLS_TEST(col_s32),
+	RTOOLS_TEST(sp_mat),
+
+  RTOOLS_TEST(vec_int),
+  RTOOLS_TEST(vec_string),
+
+	RTOOLS_TEST(field_double),
+	RTOOLS_TEST(field_int),
+	RTOOLS_TEST(field_u32),
+	RTOOLS_TEST(field_string),
+	RTOOLS_TEST(field_bool),
+	RTOOLS_TEST(field_mat_double),
+	RTOOLS_TEST(field_col_double),
+	RTOOLS_TEST(field_col_u32),
+	RTOOLS_TEST(field_col_s32),
+	RTOOLS_TEST(field_sp_mat),
+
+	{NULL}
+};
 
 extern "C" {
 	void R_init_sglOptim(DllInfo *info);

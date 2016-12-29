@@ -19,7 +19,8 @@
 a list of with nonzero coefficients of the models
 }
 \description{
-This function returns the nonzero coefficients (that is the nonzero entries of the \eqn{beta} matrices)
+This function returns the nonzero coefficients
+(that is the nonzero entries of the \eqn{beta} matrices)
 }
 \author{
 Martin Vincent

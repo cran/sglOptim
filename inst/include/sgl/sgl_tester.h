@@ -35,7 +35,7 @@ public:
     sgl::vector gradient(sgl.setup.dim);
 
     // Test graidnet at zero
-    sgl::parameter x(sgl.setup);
+    sgl::parameter x(sgl.setup.block_unit_dim, sgl.setup.block_dim);
 
     objective.at_zero();
 
@@ -47,7 +47,7 @@ public:
       sgl::parameter p = convert_to_block_vector(gradient);
 
       // Test partial gradinets
-      sgl::parameter pr(sgl.setup);
+      sgl::parameter pr(sgl.setup.block_unit_dim, sgl.setup.block_dim);
       for (sgl::natural i = 0; i < p.n_blocks; i++) {
         for (sgl::natural j = 0; j < p.block_sizes(i); j++) {
 
@@ -144,7 +144,7 @@ public:
 private:
   sgl::parameter convert_to_block_vector(sgl::vector v) const {
 
-    sgl::parameter p(sgl.setup);
+    sgl::parameter p(sgl.setup.block_unit_dim, sgl.setup.block_dim);
 
     for (sgl::natural block_index = 0; block_index < sgl.setup.n_blocks;
          ++block_index) {

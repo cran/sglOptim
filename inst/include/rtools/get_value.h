@@ -33,11 +33,6 @@ int get_value(SEXP exp) {
 }
 
 template<>
-char get_value(SEXP exp) {
-    return static_cast<char>(*CHAR(exp));
-}
-
-template<>
 arma::u32 get_value(SEXP exp) {
 	return static_cast<arma::u32>(*INTEGER(exp));
 }
@@ -53,7 +48,7 @@ std::string get_value(SEXP exp) {
 }
 
 template<>
-arma::Mat<double> get_value(SEXP exp) {
+arma::mat get_value(SEXP exp) {
 
 	double * ptr = REAL(exp);
 
@@ -62,7 +57,35 @@ arma::Mat<double> get_value(SEXP exp) {
 	unsigned int n_rows = INTEGER(dim)[0];
 	unsigned int n_cols = INTEGER(dim)[1];
 
-	return arma::conv_to< arma::Mat<double> >::from(arma::mat(ptr, n_rows, n_cols, false, true));
+	return arma::mat(ptr, n_rows, n_cols, true, true);
+}
+
+template<>
+arma::umat get_value(SEXP exp) {
+
+	int * ptr = INTEGER(exp);
+
+	SEXP dim = Rf_getAttrib(exp, R_DimSymbol);
+
+	unsigned int n_rows = INTEGER(dim)[0];
+	unsigned int n_cols = INTEGER(dim)[1];
+
+	return arma::conv_to< arma::umat >::from(
+		arma::imat(ptr, n_rows, n_cols, true, true)
+	);
+}
+
+template<>
+arma::imat get_value(SEXP exp) {
+
+	int * ptr = INTEGER(exp);
+
+	SEXP dim = Rf_getAttrib(exp, R_DimSymbol);
+
+	unsigned int n_rows = INTEGER(dim)[0];
+	unsigned int n_cols = INTEGER(dim)[1];
+
+	return arma::imat(ptr, n_rows, n_cols, true, true);
 }
 
 template<>
@@ -70,7 +93,7 @@ arma::Col<double> get_value(SEXP exp) {
 
 	double *ptr = REAL(exp);
 
-	return arma::conv_to< arma::Col<double> >::from(arma::vec(ptr, Rf_length(exp), false, true));
+	return arma::vec(ptr, Rf_length(exp), true, true);
 }
 
 template<>
@@ -78,7 +101,9 @@ arma::Col<arma::u32> get_value(SEXP exp) {
 
 	int *ptr = INTEGER(exp);
 
-	return arma::conv_to< arma::Col<arma::u32> >::from(arma::Col<int>(ptr, Rf_length(exp), false, true));
+	return arma::conv_to< arma::Col<arma::u32> >::from(
+		arma::Col<int>(ptr, Rf_length(exp), true, true)
+	);
 }
 
 template<>
@@ -86,7 +111,7 @@ arma::Col<arma::s32> get_value(SEXP exp) {
 
 	int *ptr = INTEGER(exp);
 
-	return arma::conv_to< arma::Col<arma::s32> >::from(arma::Col<int>(ptr, Rf_length(exp), false, true));
+	return arma::Col<int>(ptr, Rf_length(exp), true, true);
 }
 
 template<>
@@ -108,7 +133,6 @@ arma::sp_mat get_value(SEXP exp) {
 		n_rows, n_cols);
 }
 
-
 template<typename type>
 arma::field<type> get_field(SEXP exp) {
 
@@ -117,6 +141,19 @@ arma::field<type> get_field(SEXP exp) {
 	for (arma::u32 i = 0; i < static_cast<arma::u32>(Rf_length(exp)); ++i) {
 		SEXP elm = VECTOR_ELT(exp, i);
 		res(i) = get_value<type>(elm);
+	}
+
+	return res;
+}
+
+template<typename type>
+std::vector<type> get_vector(SEXP exp) {
+
+	std::vector<type> res(static_cast<arma::u32>(Rf_length(exp)));
+
+	for (arma::u32 i = 0; i < static_cast<arma::u32>(Rf_length(exp)); ++i) {
+		SEXP elm = VECTOR_ELT(exp, i);
+		res[i] = get_value<type>(elm);
 	}
 
 	return res;

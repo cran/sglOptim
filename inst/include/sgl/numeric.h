@@ -23,8 +23,8 @@
 
 //Forward declarations
 
-template<typename MATRIX, typename VECTOR>
-class BlockVector;
+// template<typename MATRIX, typename VECTOR>
+// class BlockVector;
 
 //index
 typedef arma::uword index;
@@ -104,26 +104,6 @@ numeric abs(numeric const& x) {
 	return fabs(x);
 }
 
-//norm
-
-template<typename T>
-numeric inline norm(T const& x) {
-// non code should go here
-        const T error_type_not_defined;
-        &error_type_not_defined = 0;
-        return -1;
-}
-
-template<>
-numeric norm(sgl::vector const& x) {
-	return arma::norm(x, 2);
-}
-
-template<>
-numeric norm(sgl::sparse_vector const& x) {
-        return arma::norm(x, 2);
-}
-
 numeric inline pos(numeric const& x) {
 	return x > 0 ? x : 0;
 }
@@ -133,9 +113,48 @@ vector inline pos(vector const& x) {
 }
 
 template<typename T, typename F>
-inline numeric discrete_dist(T const& x0, F const& x1) {
+numeric discrete_dist(T const& x0, F const& x1) {
   //return arma::accu((x0 == 0) % (x1 != 0));
    return arma::accu((x0 == 0) % (x1 != 0) + (x1 == 0) % (x0 != 0));
+}
+
+template<>
+numeric discrete_dist(
+	sgl::parameter const& x0,
+	sgl::parameter const& x1) {
+
+  sgl::numeric d = 0;
+
+  for (sgl::natural block_index = 0; block_index < x0.n_blocks; block_index++) {
+    if (!x0.is_block_zero(block_index) || !x1.is_block_zero(block_index)) {
+      d = std::max(d, sgl::discrete_dist(x0.block(block_index), x1.block(block_index)));
+    }
+	}
+
+  return d;
+}
+
+numeric  max_dist(
+	parameter_block_vector const& x0,
+	parameter_block_vector const& x1) {
+
+	return arma::as_scalar(max(abs(x0 - x1)));
+}
+
+sgl::numeric dist(
+	sgl::parameter const& x0,
+	sgl::parameter const& x1) {
+
+  sgl::numeric d = 0;
+
+  for (sgl::natural block_index = 0; block_index < x0.n_blocks; block_index++) {
+
+    if (!x0.is_block_zero(block_index) || !x1.is_block_zero(block_index)) {
+      d += arma::as_scalar(sum(square(x0.block(block_index) - x1.block(block_index))));
+    }
+	}
+
+  return d;
 }
 
 // Is decreasing
@@ -241,45 +260,6 @@ natural inline square(natural const& x) {
 
 numeric inline square(numeric const& x) {
 	return x * x;
-}
-
-//Generate a sequence
-template<typename T>
-T const& seq(T & target, typename T::elem_type start, typename T::elem_type jump_size) {
-
-	target(0) = start;
-
-	for(sgl::natural i = 1; i < target.n_elem; ++i) {
-		target(i) = target(i-1) + jump_size;
-	}
-
-	return target;
-}
-
-template<typename T>
-T seq(natural size, typename T::elem_type start, typename T::elem_type jump_size) {
-	T s(size);
-	return seq(s, start, jump_size);
-}
-
-template<typename T>
-T min(T const& a, T const& b) {
-
-	if(a < b) {
-		return a;
-	}
-
-	return b;
-}
-
-template<typename T>
-T max(T const& a, T const& b) {
-
-	if(a > b) {
-		return a;
-	}
-
-	return b;
 }
 
 #endif /* NUMERIC_H_ */

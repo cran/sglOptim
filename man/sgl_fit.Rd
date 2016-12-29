@@ -2,10 +2,11 @@
 % Please edit documentation in R/sgl_fit.R
 \name{sgl_fit}
 \alias{sgl_fit}
-\title{Fit a sparse group lasso regularization path.}
+\title{Fit a Sparse Group Lasso Regularization Path.}
 \usage{
-sgl_fit(module_name, PACKAGE, data, parameterGrouping, groupWeights,
-  parameterWeights, alpha, lambda, return = 1:length(lambda),
+sgl_fit(module_name, PACKAGE, data, parameterGrouping = NULL,
+  groupWeights = NULL, parameterWeights = NULL, alpha, lambda, d = 100,
+  compute_lambda = length(lambda) == 1, return_indices = NULL,
   algorithm.config = sgl.standard.config)
 }
 \arguments{
@@ -23,20 +24,25 @@ sgl_fit(module_name, PACKAGE, data, parameterGrouping, groupWeights,
 
 \item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
 
-\item{lambda}{the lambda sequence for the regularization path.}
+\item{lambda}{lambda.min relative to lambda.max (if \code{compute_lambda = TRUE}) or the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.}
 
-\item{return}{the indices of lambda values for which to return fitted parameters.}
+\item{d}{length of lambda sequence (ignored if \code{compute_lambda = FALSE})}
+
+\item{compute_lambda}{should the lambda sequence be computed}
+
+\item{return_indices}{the indices of lambda values for which to return fitted parameters.}
 
 \item{algorithm.config}{the algorithm configuration to be used.}
 }
 \value{
+\item{Y.true}{the response, that is the \code{y} object in data as created by \code{create.sgldata}.}
 \item{beta}{the fitted parameters -- a list of length \code{length(return)} with each entry a matrix of size \eqn{q\times (p+1)} holding the fitted parameters.}
 \item{loss}{the values of the loss function.}
 \item{objective}{the values of the objective function (i.e. loss + penalty).}
 \item{lambda}{the lambda values used.}
 }
 \description{
-A sequence of minimizers (one for each lambda given in the \code{lambda} argument) of
+Computes a sequence of minimizers (one for each lambda given in the \code{lambda} argument) of
 \deqn{\mathrm{loss}(\beta) + \lambda \left( (1-\alpha) \sum_{J=1}^m \gamma_J \|\beta^{(J)}\|_2 + \alpha \sum_{i=1}^{n} \xi_i |\beta_i| \right)}
 where \eqn{\mathrm{loss}} is the loss/objective function specified by \code{module_name}.
 The parameters are organized in the parameter matrix \eqn{\beta} with dimension \eqn{q\times p}.

@@ -144,16 +144,26 @@ inline SglOptimizer::SglOptimizer(const sgl::SglProblem & sgl, const sgl::numeri
 }
 
 template < typename T >
-inline boost::tuple < sgl::block_vector_field , sgl::vector , sgl::vector > SglOptimizer::optimize(
-		T & objective, const sgl::vector & lambda_sequence,
-		const sgl::natural_vector & solution_index, bool handle_exceptions) const
-{
+inline boost::tuple < sgl::block_vector_field , sgl::vector , sgl::vector >
+	SglOptimizer::optimize(
+		T & objective,
+		sgl::vector const& lambda_sequence,
+		sgl::natural_vector const& solution_index,
+		bool handle_exceptions) const {
+
 	sgl::block_vector_field x_field(solution_index.n_elem);
 	sgl::vector object_value(solution_index.n_elem);
 	sgl::vector function_value(solution_index.n_elem);
 
-	optimize(x_field, solution_index, object_value, function_value, objective, lambda_sequence,
-			handle_exceptions);
+	optimize(
+		x_field,
+		solution_index,
+		object_value,
+		function_value,
+		objective,
+		lambda_sequence,
+		handle_exceptions
+	);
 
 	return boost::make_tuple(x_field, object_value, function_value);
 }
@@ -164,8 +174,6 @@ bool SglOptimizer::is_stopping_criteria_fulfilled(
 	sgl::numeric const f,
 	sgl::numeric const f_old) const
 {
-
-	TIMER_START;
 
 	//Check stopping criteria
 
@@ -178,7 +186,7 @@ bool SglOptimizer::is_stopping_criteria_fulfilled(
 
 	//Layer : Distance stopping rule
 
-	sgl::numeric d = sgl.dist(x_old, x);
+	sgl::numeric d = sgl::dist(x_old, x);
 
 	if (d > sgl.config.tolerance_penalized_outer_loop_alpha)
 	{
@@ -187,7 +195,7 @@ bool SglOptimizer::is_stopping_criteria_fulfilled(
 
 	//Layer : Model stopping rule
 
-	if (sgl.discrete_dist(x_old, x) > sgl.config.tolerance_penalized_outer_loop_beta)
+	if (sgl::discrete_dist(x_old, x) > sgl.config.tolerance_penalized_outer_loop_beta)
 	{
 		return false;
 	}
@@ -202,111 +210,124 @@ bool SglOptimizer::is_stopping_criteria_fulfilled(
 //x and x_old must have same size
 template < typename T >
 sgl::parameter SglOptimizer::optimize_single(
-	sgl::parameter & x,
-	sgl::parameter & x_old,
-	sgl::vector & gradient,
-	T & objective,
-	sgl::numeric const& lambda) const
-{
+  sgl::parameter & x,
+  sgl::parameter & x_old,
+  sgl::vector & gradient,
+  T & objective,
+  sgl::numeric const& lambda) const {
 
-	TIMER_START;
-	DEBUG_ENTER
+  TIMER_START;
+  DEBUG_ENTER
 
-	//Quadratic approximation loop
+  //Quadratic approximation loop
 
-	sgl::numeric f;
-	sgl::numeric f_old;
+  sgl::numeric f;
+  sgl::numeric f_old;
 
-	//Initialise converges checker
-	CONVERGENCE_CHECK(1e5); //TODO configable converges checker
+  //Initialise converges checker
+  CONVERGENCE_CHECK(sgl.config.max_iterations_outer);
 
-	sgl::vector critical_bounds(sgl.setup.n_blocks); //Note this will only be used when use_bound_optimization = true
+  sgl::vector critical_bounds(sgl.setup.n_blocks); //Note this will only be used when use_bound_optimization = true
 
-	do {
+  do {
 
-		CONVERGENCE_CHECK_INCREASE;
+    CONVERGENCE_CHECK_INCREASE;
 
-		x_old = x;
-		f_old = objective.evaluate() + sgl.penalty(x, alpha, lambda);
+    x_old = x;
+    f_old = objective.evaluate() + sgl.penalty(x, alpha, lambda);
 
-		//Compute critical bounds
-		if (sgl.config.use_bound_optimization) {
-			critical_bounds = sgl.compute_bounds(gradient, x, alpha, lambda);
-		}
+    //Compute critical bounds
+    if (sgl.config.use_bound_optimization) {
+      critical_bounds = sgl.compute_bounds(gradient, x, alpha, lambda);
+    }
 
-		optimize_quadratic(objective, x, gradient, critical_bounds, alpha, lambda);
+    optimize_quadratic(objective, x, gradient, critical_bounds, alpha, lambda);
 
-		objective.at(x);
-		f = objective.evaluate() + sgl.penalty(x, alpha, lambda);
+    objective.at(x);
+    f = objective.evaluate() + sgl.penalty(x, alpha, lambda);
 
-		#ifdef SGL_DEBUG_INFO_QUADRATIC
-				Rcpp::Rcout << " rel func. improvement = "<< (f_old - f) / abs(f_old) << std::endl;
-				Rcpp::Rcout << " parameter distance = " << sgl.dist(x_old, x) << std::endl;
-				Rcpp::Rcout << " parameter discrete distance = " << sgl.discrete_dist(x_old, x) << std::endl;
-				Rcpp::Rcout << " penalized objective value = " << f << std::endl;
-				Rcpp::Rcout << " objective value = " <<  objective.evaluate() << std::endl;
-		#endif
+    // Stepsize optimization
+		if ( sgl.config.use_stepsize_optimization_in_penalizeed_loop &&
+      f > f_old &&
+      ! is_stopping_criteria_fulfilled(x, x_old, f, f_old) ) {
 
-		// Stepsize optimization
-		if ( sgl.config.use_stepsize_optimization_in_penalizeed_loop
-				&& f > f_old
-				&& ! is_stopping_criteria_fulfilled(x, x_old, f, f_old)) {
+      TIMER_START
 
-			TIMER_START;
+      objective.at(x_old);
 
-			objective.at(x_old);
+      // Find stepsize
+      sgl::numeric t = stepsize_optimize_penalized(
+        objective,
+        x,
+        x_old,
+        gradient,
+        objective.evaluate(),
+        lambda
+      );
 
-			sgl::numeric t = stepsize_optimize_penalized(
-					objective, x,	x_old, gradient, objective.evaluate(), lambda);
+      if (t != 1)	{
+        x = (1 - t) * x_old + t * x;
+      }
 
-			if (t != 1)	{
-				x = (1 - t) * x_old + t * x;
-			}
+      #ifdef SGL_DEBUG_INFO_STEPSIZE
+        Rcpp::Rcout << "stepsize = " << t << std::endl;
+      #endif
 
-#ifdef SGL_DEBUG_INFO_STEPSIZE
-			Rcpp::Rcout << "stepsize = " << t << std::endl;
-#endif
+      objective.at(x);
+      f = objective.evaluate() + sgl.penalty(x, alpha, lambda);
 
-			objective.at(x);
-			f = objective.evaluate() + sgl.penalty(x, alpha, lambda);
+    }
 
-		}
+    #ifdef SGL_DEBUG_INFO_QUADRATIC
+      Rcpp::Rcout << " rel func. improvement = "<< (f_old - f) / abs(f_old) << std::endl;
+      Rcpp::Rcout << " parameter distance = " << sgl::dist(x_old, x) << std::endl;
+      Rcpp::Rcout << " parameter discrete distance = " << sgl::discrete_dist(x_old, x) << std::endl;
+      Rcpp::Rcout << " current penalized objective value = " << f << std::endl;
+      Rcpp::Rcout << " old penalized objective value = " << f_old << std::endl;
+      Rcpp::Rcout << " current objective value = " <<  objective.evaluate() << std::endl;
+    #endif
 
-		if (!is_stopping_criteria_fulfilled(x, x_old, f, f_old)) {
+    if ( ! is_stopping_criteria_fulfilled(x, x_old, f, f_old) ) {
 
-			//Continue quadratic loop
-			ASSERT_IS_NON_NEGATIVE(f_old - f + 1e3*std::numeric_limits < sgl::numeric > ::epsilon());
+      //Continue quadratic loop
 
-			gradient = objective.gradient();
+      ASSERT_IS_NON_NEGATIVE(f_old - f + 1e-10); //NOTE configable threshold
+      gradient = objective.gradient();
 
-		}
+    }
 
-		else 	{
-			//Exit quadratic loop
-			return x_old;
-		}
+    else 	{
+
+      //Exit quadratic loop
+
+      return x_old;
+    }
 
 	} while (true);
 
 }
 
 template < typename T >
-sgl::natural SglOptimizer::optimize(sgl::parameter_field & x_field,
-		sgl::natural_vector const& needed_solutions, sgl::vector & object_value,
-		sgl::vector & function_value, T & objective, sgl::vector const& lambda_sequence,
-		bool handle_exceptions, bool progress_monitor) const
-{
+sgl::natural SglOptimizer::optimize(
+		sgl::parameter_field & x_field,
+		sgl::natural_vector const& needed_solutions,
+		sgl::vector & object_value,
+		sgl::vector & function_value,
+		T & objective,
+		sgl::vector const& lambda_sequence,
+		bool handle_exceptions,
+		bool progress_monitor) const {
 
 	//Start scope timer, note will only be activated if DO_TIMING is defined
 	TIMER_START;
 	DEBUG_ENTER
 
 	//Ensure x_field_index is ordered
-	sgl::natural_vector x_field_order = sort(needed_solutions, 0);
+	sgl::natural_vector x_field_order = sort(needed_solutions,  "ascend");
 
 	sgl::vector gradient(sgl.setup.dim);
-	sgl::parameter x(sgl.setup);
-	sgl::parameter x0(sgl.setup);
+	sgl::parameter x(sgl.setup.block_unit_dim, sgl.setup.block_dim);
+	sgl::parameter x0(sgl.setup.block_unit_dim, sgl.setup.block_dim);
 
 	//Start at zero
 	x.zeros();
@@ -345,8 +366,9 @@ sgl::natural SglOptimizer::optimize(sgl::parameter_field & x_field,
 
 				//Save objective function values
 				object_value(x_field_index) = objective.evaluate();
-				function_value(x_field_index) = object_value(x_field_index)
-						+ sgl.penalty(x, alpha, lambda);
+
+				function_value(x_field_index) =
+					object_value(x_field_index) + sgl.penalty(x, alpha, lambda);
 
 				//Next x field
 				++x_field_index;
@@ -354,10 +376,12 @@ sgl::natural SglOptimizer::optimize(sgl::parameter_field & x_field,
 
 			//next lambda
 			++lambda_index;
+
 			//Increas progress monitor
 			p.increment();
 
-			if (lambda_index >= lambda_sequence.n_elem || x_field_index >= x_field_order.n_elem)
+			if (	lambda_index >= lambda_sequence.n_elem ||
+						x_field_index >= x_field_order.n_elem)
 			{
 				//No more lambda values or no more solutions needed - exit
 				break;
@@ -423,7 +447,7 @@ sgl::numeric SglOptimizer::stepsize_optimize_penalized(
 		if (t - std::numeric_limits< sgl::numeric >::epsilon() < 0)
 		{
 			// We could not find a descent direction -- try again
-			// Do not return 0, as this will result in the algorithm return an non optimal x
+			// Do not return 0, as this will result in the algorithm returning an non optimal x
 			return 0.5;
 		}
 
@@ -448,7 +472,7 @@ inline void SglOptimizer::optimize_quadratic(
 	DEBUG_ENTER
 
 	//Initialize converges checker
-	CONVERGENCE_CHECK(1e4); //TODO configable converges checker
+	CONVERGENCE_CHECK(1e4); //NOTE configable converges checker
 
 	sgl::vector block_gradient;
 	sgl::parameter_block_vector x_new;
@@ -531,7 +555,7 @@ inline void SglOptimizer::optimize_quadratic(
 
 					// Update
 
-					double const dist_block = sgl.max_dist(x_block, x_new);
+					double const dist_block = sgl::max_dist(x_block, x_new);
 
 					// Max dist
 					if (dist < dist_block) {
@@ -563,7 +587,7 @@ inline void SglOptimizer::optimize_quadratic(
 				//Check if block is active
 				if (sgl.is_block_active(block_gradient, block_index, alpha, lambda)) {
 
-					//TODO update this line with new function names
+					//NOTE update this line with new function names
 					//Rcpp::Rcout << "block = " << block_index << " gab = " << sgl.compute_K(abs(block_gradient) - lambda * alpha * sgl.setup.L1_penalty_weight(block_index), 0) - sgl::square(lambda * (1 - alpha) * sgl.setup.L2_penalty_weight(block_index)) << endl;
 
 					Rcpp::Rcout << "critical bound = " << critical_bounds(block_index) << " hessian level 0 bound = " << objective.hessian_bound_level0()
@@ -581,7 +605,7 @@ inline void SglOptimizer::optimize_quadratic(
 			x_new.zeros();
 
 			sgl::parameter_block_vector x_block(x.block(block_index));
-			double const dist_block = sgl.max_dist(x_block, x_new);
+			double const dist_block = sgl::max_dist(x_block, x_new);
 
 			// Max dist
 			if (dist < dist_block) {
@@ -641,15 +665,14 @@ void SglOptimizer::optimize_inner(
 				penalty_constant_L2,
 				penalty_constant_L1(i),
 				xi,
-				sgl::pos(sumsq - sgl::square(xi)));
+				sgl::pos(sumsq - sgl::square(xi))
+			);
 
 			ASSERT_IS_NUMBER(x_new);
 			ASSERT_IS_FINITE(x_new);
-		//	ASSERT_IS_NUMBER(sumsq);
-		//	ASSERT_IS_FINITE(sumsq);
 
 			//Update gradient and x
-			if (abs(x_new - xi)/abs(xi) > 1e-8) { //TODO configable
+			if (abs(x_new - xi)/abs(xi) > 1e-8) { //NOTE configable
 
 				gradient += (x_new - xi) * second_order_term.col(i);
 				sumsq += sgl::square(x_new) - sgl::square(xi);
@@ -660,53 +683,64 @@ void SglOptimizer::optimize_inner(
 		}
 
 		//Check if we ended up near zero
-		if (sumsq < 1e-20
-				&& function_value(x, gradient, second_order_term, penalty_constant_L2,
-						penalty_constant_L1) >= 0) {
+		if (sumsq < 1e-20) {
 
-			//Find new x
-			locate_safe_point(
+			sgl::numeric f_value = function_value(
 				x,
-				x0,
-				gradient_at_x0,
+				gradient,
 				second_order_term,
 				penalty_constant_L2,
-				penalty_constant_L1);
+				penalty_constant_L1
+			);
 
-			//update gradient
-			gradient = gradient_at_x0 + second_order_term * (x - x0);
+			if(f_value >= 0) {
+
+				//Find new x
+				locate_safe_point(
+					x,
+					x0,
+					gradient_at_x0,
+					second_order_term,
+					penalty_constant_L2,
+					penalty_constant_L1
+				);
+
+				//update gradient
+				gradient = gradient_at_x0 + second_order_term * (x - x0);
+			}
 		}
 
-	} while (sgl.max_dist(x_old, x) > sgl.config.tolerance_penalized_inner_loop_alpha
+	} while (sgl::max_dist(x_old, x) > sgl.config.tolerance_penalized_inner_loop_alpha
 			|| sgl::discrete_dist(x_old, x) > sgl.config.tolerance_penalized_inner_loop_beta);
 
 	ASSERT_IS_NON_ZERO(x);
 }
 
-//TODO better name for function
+//NOTE better name for function
 void SglOptimizer::locate_safe_point(
 	sgl::parameter_block_vector & safe_point,
 	sgl::parameter_block_vector const& x,
 	sgl::vector const& gradient_at_x,
 	sgl::matrix const& second_order_term,
 	sgl::numeric penalty_constant_L2,
-	sgl::vector const& penalty_constant_L1) const
-{
+	sgl::vector const& penalty_constant_L1) const {
 
 	sgl::parameter_block_vector x_decent(safe_point.n_elem);
 	argmin_subgradient(x_decent, gradient_at_x - second_order_term * x, penalty_constant_L1);
 
 	safe_point = x_decent;
 
-	sgl::numeric t = 1; //TODO configable
+	sgl::numeric t = 1; //NOTE configable
 
 	while (true) {
 
-	sgl::numeric value = function_value(safe_point,
+	sgl::numeric value = function_value(
+		safe_point,
 		gradient_at_x + second_order_term * (safe_point - x),
 		second_order_term,
 		penalty_constant_L2,
-		penalty_constant_L1);
+		penalty_constant_L1
+	);
 
 		if(value < 0) {
 			break;
@@ -718,18 +752,18 @@ void SglOptimizer::locate_safe_point(
 	}
 }
 
-sgl::numeric SglOptimizer::function_value(sgl::parameter_block_vector const& x,
-		sgl::vector const& gradient_at_x, sgl::matrix const& second_order_term,
-		sgl::numeric penalty_constant_L2, sgl::vector const& penalty_constant_L1) const
-{
-
-	TIMER_START;
-	DEBUG_ENTER
+sgl::numeric SglOptimizer::function_value(
+	sgl::parameter_block_vector const& x,
+	sgl::vector const& gradient_at_x,
+	sgl::matrix const& second_order_term,
+	sgl::numeric penalty_constant_L2,
+	sgl::vector const& penalty_constant_L1) const {
 
 	return arma::as_scalar(
-			trans(gradient_at_x - 1 / 2 * second_order_term * x) * x
-					+ penalty_constant_L2 * sqrt(sum(square(x)))
-					+ sum(penalty_constant_L1 % abs(x)));
+		trans(gradient_at_x - 1/2 * second_order_term * x) * x
+		+ penalty_constant_L2 * sqrt(sum(square(x)))
+		+ sum(penalty_constant_L1 % abs(x))
+	);
 }
 
 void SglOptimizer::argmin_subgradient(sgl::parameter_block_vector & x, sgl::vector const& v,
@@ -849,10 +883,10 @@ sgl::numeric SglOptimizer::solve_main_equation(
 {
 
 	//Start scope timer, note will only be activated if DO_TIMING is defined
-	TIMER_START;
+	//TIMER_START;
 
 	//Initialise converges checker
-	CONVERGENCE_CHECK(1e8); //TODO configable
+	CONVERGENCE_CHECK(1e8); //NOTE configable
 
 	//Domain checks
 	ASSERT_IS_POSITIVE(c);
@@ -887,7 +921,7 @@ sgl::numeric SglOptimizer::solve_main_equation(
 
 		sgl::numeric value = c + h * new_x + p * new_x / sqrt(new_x * new_x + r);
 
-		if (abs(value) < 1e-10) //TODO configurable
+		if (abs(value) < 1e-10) //NOTE configurable
 		{
 			x0 = new_x;
 			break;

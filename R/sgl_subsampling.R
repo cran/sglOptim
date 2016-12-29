@@ -22,9 +22,50 @@
 # Tell R that 'task' (used in foreach) is global variable -- R check will complain if not
 globalVariables('task')
 
-#' Generic sparse group lasso subsampling procedure
+#' @title Generic sparse group lasso subsampling procedure
 #'
-#' Support the use of multiple processors.
+#' @description Subsampling procedure with support parallel computations.
+#' @details If no formating is done (i.e. if \code{responses = NULL})
+#' then the \code{responses} field contains a list of lists structured in the following way:
+#'
+#'subsamples 1:
+#'\itemize{
+#' \item{sample \code{test[[1]][1]}}{
+#' 	\itemize{
+#'	 \item{model (lambda) index 1}{
+#'   	\itemize{
+#'       \item{}{response elements}
+#'		 }}
+#'	 \item{model (lambda) index 2}{
+#'   	\itemize{
+#'       \item{}{response elements}
+#'		 }}
+#'	 \item{...}{}
+#'	}}
+#' \item{sample \code{test[[1]][2]}}{
+#' 	\itemize{
+#'	 \item{model (lambda) index 1}{
+#'   	\itemize{
+#'       \item{}{response elements}
+#'		 }}
+#'	 \item{model (lambda) index 2}{
+#'   	\itemize{
+#'       \item{}{response elements}
+#'		 }}
+#'	 \item{...}{}
+#'  }}
+#' \item{...}{}
+#' }
+#'subsamples 2:
+#'  ...
+#'
+#' If \code{responses = "rname"} with \code{rname} the name of the response then a list at \code{responses$rname} will be returned.
+#' The content of the list will depend on the type of the response.
+#' \itemize{
+#	\item{scalar}{ A list of subsamples (of length \code{length(test)}) containing matrices of size \eqn{n_i \times d} with the responses (where \eqn{n_i} is the number of samples in subsample \eqn{i} (that is \code{length(test[[i]])}) and \eqn{d} the length of the lambda sequence).}
+#'\item{vector}{ A list with format subsamples -> models -> matrix of dimension \eqn{n_i \times q} containing the responses for the corresponding model and subsample (where \eqn{q} is the dimension of the response).}
+#'\item{matrix}{ A list with format subsamples -> samples -> models - > the response matrix.}
+#' }
 #'
 #' @param module_name reference to objective specific C++ routines.
 #' @param PACKAGE name of the calling package.
@@ -33,20 +74,25 @@ globalVariables('task')
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}.
 #' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
-#' @param lambda the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.
+#' @param lambda lambda.min relative to lambda.max (if \code{compute_lambda = TRUE}) or the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.
+#' @param d length of lambda sequence (ignored if \code{compute_lambda = FALSE})
+#' @param compute_lambda should the lambda sequence be computed
 #' @param training a list of training samples, each item of the list corresponding to a subsample.
 #' Each item in the list must be a vector with the indices of the training samples for the corresponding subsample.
 #' The length of the list must equal the length of the \code{test} list.
 #' @param test a list of test samples, each item of the list corresponding to a subsample.
 #' Each item in the list must be vector with the indices of the test samples for the corresponding subsample.
 #' The length of the list must equal the length of the \code{training} list.
-#' @param collapse if \code{TRUE} the results for each subsample will be collapse into one result (this is useful if the subsamples are not overlapping)
+#' @param responses a vector of responses to simplify and return (if NULL (deafult) no formating will be done)
+#' @param auto_response_names set response names
+#' @param collapse if \code{TRUE} the results will be collapsed and ordered into one result, resembling the output of \code{sgl_predict}  (this is only valid if the test samples are not overlapping)
 #' @param max.threads Deprecated (will be removed in 2018),
 #' instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
 #' The maximal number of threads to be used.
 #' @param use_parallel If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}. The user must registre the parallel backend.
 #' @param algorithm.config the algorithm configuration to be used.
 #' @return
+#' \item{Y.true}{the response, that is the \code{y} object in data as created by \code{create.sgldata}.}
 #' \item{responses}{content will depend on the C++ response class}
 #' \item{features}{number of features used in the models}
 #' \item{parameters}{number of parameters used in the models}
@@ -58,19 +104,25 @@ globalVariables('task')
 #' @importFrom doParallel registerDoParallel
 #' @importFrom parallel makeCluster stopCluster
 #' @export
-sgl_subsampling <- function(module_name, PACKAGE,
-	data,
-	parameterGrouping,
-	groupWeights,
-	parameterWeights,
-	alpha,
-	lambda,
-	training,
-	test,
-	collapse = FALSE,
-	max.threads = NULL,
-	use_parallel = FALSE,
-	algorithm.config = sgl.standard.config) {
+sgl_subsampling <- function(
+  module_name,
+  PACKAGE,
+  data,
+  parameterGrouping = NULL,
+  groupWeights = NULL,
+  parameterWeights = NULL,
+  alpha,
+  lambda,
+  d = 100,
+  compute_lambda = length(lambda) == 1,
+  training = NULL,
+  test = NULL,
+  responses = NULL,
+  auto_response_names = TRUE,
+  collapse = FALSE,
+  max.threads = NULL,
+  use_parallel = FALSE,
+  algorithm.config = sgl.standard.config) {
 
 	# deprecated warnings
 	if( ! is.null(max.threads) ) {
@@ -87,13 +139,18 @@ sgl_subsampling <- function(module_name, PACKAGE,
 	}
 
 	# Check if collapse = TRUE is valid
-	if(	collapse == TRUE
-			&& (length(unique(unlist(test))) != data$n.samples || length(unlist(test)) != data$n.samples)) {
-		stop("collapse = TRUE is not supported unless the test subsamples divide the samples into disjoint sets")
+	if(	collapse == TRUE) {
+		if( length(unique(unlist(test))) != length(unlist(test)) ) {
+			stop("collapse = TRUE only valid if test samples are not overlapping")
+		}
 	}
 
-	# Make lambda a list or validate
+	training <- lapply(training, sort)
+	test <- lapply(test, sort)
+
+	# Make lambda a list and validate
 	if(is.list(lambda)) {
+
 		if( ! all(sapply(lambda, function(x) length(x) == length(lambda[[1]])))) {
 			stop("all lambda sequences must have same length")
 		}
@@ -104,12 +161,37 @@ sgl_subsampling <- function(module_name, PACKAGE,
 
 		lambda.list <- lambda
 
-	} else {
-		lambda.list <- replicate(length(training), lambda, simplify = FALSE)
-	}
+	} else if ( ! compute_lambda ){
 
-	training <- lapply(training, sort)
-	test <- lapply(test, sort)
+		lambda.list <- replicate(length(training), lambda, simplify = FALSE)
+
+	} else {
+
+		# Compute lambda sequence
+
+		if( length(lambda) != 1 || lambda > 1 || lambda < 0) {
+			stop("lambda must be a single number in the range (0,1) ")
+		}
+
+		if( length(d) != 1 || as.integer(d) != d || d < 1) {
+			stop("d must be a single integer larger than 1")
+		}
+
+		lambda.list <- lapply(training, function(idx) sgl_lambda_sequence(
+			module_name = module_name,
+			PACKAGE = PACKAGE,
+			data =  subsample(data, idx),
+			parameterGrouping = parameterGrouping,
+			groupWeights = groupWeights,
+			parameterWeights = parameterWeights,
+			alpha = alpha,
+			d = d,
+			lambda.min = lambda,
+			algorithm.config = algorithm.config,
+			lambda.min.rel = TRUE)
+		)
+
+	}
 
 	call_sym <- paste(module_name, "sgl_subsampling", sep="_")
 
@@ -125,7 +207,7 @@ sgl_subsampling <- function(module_name, PACKAGE,
 		rawres <- foreach(task=1:length(training),
 			.packages = PACKAGE) %dopar% {
 
-           test_data <- subsample(data, test[[task]])
+      test_data <- subsample(data, test[[task]])
 			train_data <- subsample(data, training[[task]])
 
 			# Prapare arguments
@@ -137,23 +219,28 @@ sgl_subsampling <- function(module_name, PACKAGE,
 				alpha = alpha,
 				test_data = test_data)
 
-			.Call(call_sym, PACKAGE = PACKAGE,
+			x <- .Call(call_sym, PACKAGE = PACKAGE,
 				args$data,
 				args$test_data,
-				args$block.dim,
+				args$block_dim,
 				args$groupWeights,
 				args$parameterWeights,
 				args$alpha,
 				lambda.list[[task]],
-				algorithm.config)
-			}
+				algorithm.config
+			)
+
+			names(x$responses) <- test_data$sample_names
+
+			return(x)
+		}
 
 	} else {
 
 		rawres <- foreach(task=1:length(training)) %do% {
 
-       test_data <- subsample(data, test[[task]])
-	    train_data <- subsample(data, training[[task]])
+    test_data <- subsample(data, test[[task]])
+	  train_data <- subsample(data, training[[task]])
 
 		# Prapare arguments
 		args <- prepare.args(
@@ -164,153 +251,89 @@ sgl_subsampling <- function(module_name, PACKAGE,
 			alpha = alpha,
 			test_data = test_data)
 
-		.Call(call_sym, PACKAGE = PACKAGE,
-				args$data,
-				args$test_data,
-				args$block.dim,
-				args$groupWeights,
-				args$parameterWeights,
-				args$alpha,
-				lambda.list[[task]],
-				algorithm.config)
-			}
+		x <- .Call(call_sym, PACKAGE = PACKAGE,
+			args$data,
+			args$test_data,
+			args$block_dim,
+			args$groupWeights,
+			args$parameterWeights,
+			args$alpha,
+			lambda.list[[task]],
+			algorithm.config
+		)
+
+		names(x$responses) <- test_data$sample_names
+
+		return(x)
+		}
 	}
 
 	if( ! is.null(max.threads) && max.threads > 1) {
  		stopCluster(cl)
 	}
 
-	# formating responses
-	res <- list()
+	response_list <- lapply(rawres, function(x) x$responses)
 
-	res$responses <- .format_responses(
-		rawres,
-		collapse,
-		length(training),
-		length(lambda))
-
-	res$features <- t(sapply(rawres, function(x) x$features))
-	res$parameters <- t(sapply(rawres, function(x) x$parameters))
-
-	# Sample names
-	sample.names <- data$sample.names
-
-	if(collapse == TRUE) {
-
-		# Reorder responses and set sample names
-		sample.order <- order(unlist(test))
-		res$responses <- lapply(res$responses, function(x) .order_response(x, sample.order))
-		res$responses <- lapply(res$responses, function(x) .set_sample_names(x, sample.names))
-
-	} else {
-		#Set sample names
-		res$responses <- lapply(res$responses, function(x) lapply(1:length(x), function(i) .set_sample_names(x[[i]], sample.names[test[[i]]])))
+	# Set response names
+	if(auto_response_names) {
+		response_list <- lapply(response_list, function(rl) .set_response_names(rl, data))
 	}
 
-	# Names
-	rownames(res$features) <- paste("subsample", 1:length(training))
-	rownames(res$parameters) <- paste("subsample", 1:length(training))
+	attr(response_list, "type") <- c("subsample", "sample", "model", "response")
+
+
+	if( collapse ) {
+
+		response_list <- unlist(response_list, recursive = FALSE)
+		response_list <- response_list[order(unlist(test))]
+		attr(response_list, "type") <- c("sample", "model", "response")
+
+	}
+
+	if( ! is.null(responses) ) {
+
+		response_list <- lapply(responses, function(x)
+			.format_response(response_list, x)
+		)
+
+		names(response_list) <- responses
+	}
+
+	# Build result list
+	res <- list()
+
+	# Add true response
+	if(collapse) {
+		res$Y.true <- data$data$Y
+	} else {
+		if( is.matrix(data$data$Y) || is(data$data$Y, "sparseMatrix") ) {
+			res$Y.true <- lapply(test, function(idx) data$data$Y[idx,,drop=FALSE])
+		} else if ( is.vector(data$data$Y) || is.factor(data$data$Y) ) {
+			res$Y.true <- lapply(test, function(idx) data$data$Y[idx])
+		} else {
+			stop(paste("Can not handle response class '", class(data$data$Y), "'.", sep =""))
+		}
+	}
+
+  # Add responses
+	res$responses <- response_list
+
+	res$features <- t(sapply(rawres, function(x) x$features))
+	rownames(res$features) <- paste("sample-set", 1:nrow(res$features), sep="-")
+
+	res$parameters <- t(sapply(rawres, function(x) x$parameters))
+	rownames(res$parameters) <- paste("sample-set", 1:nrow(res$parameters), sep="-")
 
 	res$lambda <- lambda.list
 
+	res$collapse <- collapse
+
 	# Set version, type and class and return
+	res$module_name <- module_name
+	res$PACKAGE <- PACKAGE
 	res$sglOptim_version <- packageVersion("sglOptim")
 	res$type <- "subsampling"
 	class(res) <- "sgl"
 
 	return(res)
-}
-
-.format_responses <- function(x, collapse, n_subsamples, n_lambda) {
-	if( ! collapse) {
-
-		r <- lapply(1:length(x[[1]]$responses), function(k)
-
-			if(is.list(x[[1]]$responses[[k]])) {
-
-			 return( lapply(1:n_subsamples,
-					function(i) lapply(1:n_lambda,
-						function(j) x[[i]]$responses[[k]][[j]])))
-
-			} else {
-
-				return( lapply(1:n_subsamples,
-							function(j) x[[j]]$responses[[k]]) )
-			})
-
-	} else {
-
-		r <- lapply(1:length(x[[1]]$responses), function(k)
-
-			if (is.list(x[[1]]$responses[[k]])) {
-
-			 return( lapply(1:n_lambda,
-					function(i) .collapse_responses(lapply(1:n_subsamples,
-						function(j) x[[j]]$responses[[k]][[i]]))) )
-
-			} else {
-
-				return( .collapse_responses(lapply(1:n_subsamples,
-							function(j) x[[j]]$responses[[k]])) )
-
-			})
-	}
-
-	names(r) <- names(x[[1]]$responses)
-
-	return(r)
-}
-
-.collapse_responses <- function(responses) {
-	if(is.matrix(responses[[1]])) {
-		return( do.call(cbind, responses) )
-	} else {
-		stop("unknown response class")
-	}
-}
-
-.set_sample_names <- function(response, sample.names) {
-
-	if(is.list(response) && is.list(response[[1]]) && ! is.null(response[[1]]$parameters) && response[[1]]$parameters == TRUE) {
-		names(response) <- sample.names
-		return(response)
-	}
-
-	if(is.list(response)) {
-		return(lapply(response, function(x) .set_sample_names(x, sample.names)))
-	}
-
-	if(is.matrix(response)) {
-		colnames(response) <- sample.names
-		return(response)
-	}
-
-	if(is.vector(response)) {
-		names(response) <- sample.names
-		return(response)
-	}
-
-	stop("Unknown response class")
-
-}
-
-.order_response <- function(response, sample.order) {
-
-	if(is.list(response) && is.list(response[[1]]) && ! is.null(response[[1]]$parameters) && response[[1]]$parameters == TRUE) {
-		return(response[sample.order])
-	}
-
-	if(is.list(response)) {
-		return(lapply(response, function(x) .order_response(x, sample.order)))
-	}
-
-	if(is.matrix(response)) {
-		return(response[,sample.order, drop = FALSE])
-	}
-
-	if(is.vector(response)) {
-		return(response[sample.order])
-	}
-
-	stop("Unknown response class")
 }

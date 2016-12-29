@@ -21,103 +21,6 @@
 
 # S3 functions:
 
-#' @title Generic function for computing error rates
-#'
-#' @description
-#' Compute and returns an error rate for each model contained in \code{x}.
-#' See details for generic use cases.
-#'
-#' @details
-#' The following generic use case should be supported (see for example \pkg{msgl} package for an implementation):
-#'
-#' \enumerate{
-#' \item With \code{fit} a sgl fit object with models estimated using \code{x} data, the code
-#'
-#' \code{Err(fit, x)}
-#'
-#' should return a vector with the \emph{training errors} of the models.
-#'
-#' \item With \code{x.new} a new data set with known responses \code{response.new}, the code
-#'
-#' \code{Err(fit, x.new, response.new)}
-#'
-#' should return a vector with the errors of the models when applied to the new data set.
-#
-#' \item With \code{fit.cv} a sgl cross validation object, the code
-#'
-#' \code{Err(fit.cv)}
-#'
-#' should return a vector with estimates of the \emph{expected generalization errors} of the models (i.e. the cross validation errors).
-#'
-#' \item If subsampling is supported then, with \code{fit.sub} a sgl subsampling object, the code
-#'
-#' \code{Err(fit.sub)}
-#'
-#' should return a matrix with the test errors (each column corresponding to a model, i.e. rows corresponds to tests).
-#' }
-#'
-#' @seealso compute_error
-#' @param object an object
-#' @param data a data object
-#' @param response a response object
-#' @param ... additional parameters (optional)
-#' @return
-#' a vector of length \code{nmod(object)} or a matrix with \code{nmod(object)} columns containing error rates for the models
-#' @author Martin Vincent
-#' @export
-Err <- function(object, data, response, ... ) UseMethod("Err")
-
-
-#' @title Helper function for computing error rates
-#' @description
-#' This function can be used to compute error rates.
-#' It is consist with the use cases of the \code{Err} genetic function.
-#' (see \pkg{msgl} package for an example of how to use this function)
-#' @param object a object containing responses
-#' @param data a data object
-#' @param response.name the name of the response, if \code{response.name = NULL} then \code{object} will be treated as the response.
-#' @param response the response
-#' @param loss the loss function
-#' @return a vector with the computed error rates
-#'
-#' @author Martin Vincent
-#' @importFrom stats predict
-#' @export
-compute_error <- function(object, data = NULL, response.name, response, loss) {
-
-	if(!is.null(data)) {
-		return(compute_error(object = predict(object, data), data = NULL, response.name = response.name, response = response, loss = loss))
-	}
-
-	if(is.null(response.name) || any(names(object) == response.name)) {
-
-		if(is.null(response.name)) {
-			r <- object
-		} else {
-			r <- object[[response.name]]
-		}
-
-		if(is.list(r) && is.list(response)) {
-			return(t(sapply(1:length(r), function(i) compute_error(object = r[[i]], data = NULL, response.name = NULL, response = response[[i]], loss = loss))))
-
-		} else if(is.list(r)) {
-			return(sapply(r, function(m) loss(m, response)))
-
-		} else if(is.matrix(r)) {
-			return(apply(r, 2, FUN = function(v) loss(v, response)))
-
-		} else if(is.vector(r))  {
-			return(loss(r, response))
-
-		} else {
-			stop("Unknown response type")
-		}
-	}
-
-	stop(paste("response '", response.name, "' not found", sep =""))
-
-}
-
 #' @title Extracts nonzero features
 #'
 #' @description
@@ -173,7 +76,9 @@ parameters_stat <- function(object, ...) UseMethod("parameters_stat")
 #' @description
 #' Generic function for counting the number of models used for fitting the object.
 #' Returns the number of models used for fitting.
-#' However, note that the objects returned by \code{msgl.cv} and {msgl.subsampling} does not contain any models even though \code{nmod} returns a nonzero number.
+#' However, note that the objects returned by \code{msgl.cv} and
+#' \code{msgl.subsampling} does not contain any models even though
+#' \code{nmod} returns a nonzero number.
 #'
 #' @param object an object
 #' @param ... additional parameters (optional)
@@ -299,7 +204,7 @@ parameters.sgl <- function(object, ...) {
 parameters_stat.sgl <- function(object, ...) {
 
 	if(object$type == "fit") {
-		return(sapply(parameters(object), length))
+		return(sapply(parameters(object), nnzero))
 	} else if (object$type == "cv") {
 		return(object$parameters)
 	} else if (object$type == "subsampling") {
@@ -389,7 +294,8 @@ models.sgl <- function(object, index = 1:nmod(object), ...) {
 
 #' @title Extracting the nonzero coefficients
 #' @description
-#' This function returns the nonzero coefficients (that is the nonzero entries of the \eqn{beta} matrices)
+#' This function returns the nonzero coefficients
+#' (that is the nonzero entries of the \eqn{beta} matrices)
 #'
 #' @param object a sgl object
 #' @param index indices of the models
@@ -405,7 +311,13 @@ coef.sgl <- function(object, index = 1:nmod(object), parameter = "beta", ...) {
 		stop("object contains no models")
 	}
 
-	return(get_coef(object[[parameter]], index))
+	res <- get_coef(object[[parameter]], index)
+
+	if(length(res) == 1) {
+		return( res[[1]] )
+	}
+
+	return(res)
 }
 
 #' @title Get the nonzero coefficients
@@ -445,12 +357,16 @@ sgl_print <- function(x) {
 		cat("\nModels:\n\n")
 		sel <- 1:5*floor(nmod(x)/5)
 
-		feat <- sapply(features(x), length)
-		para <- sapply(parameters(x), sum)
+		if(sel[1] != 1) {
+			sel <- c(1, sel)
+		}
+
+		feat <- features_stat(x)
+		para <- parameters_stat(x)
 
 		print(data.frame(
 						'Index: ' = sel,
-						'Lambda: ' = x$lambda[sel],
+						'Lambda: ' = x$lambda[sel]/x$lambda[1],
 						'Features: ' = print_with_metric_prefix(feat[sel]),
 						'Parameters: ' = print_with_metric_prefix(para[sel]), check.names = FALSE),
 				row.names = FALSE, digits = 2, right = TRUE)
@@ -462,12 +378,16 @@ sgl_print <- function(x) {
 		cat("\nModels:\n\n")
 		sel <- 1:5*floor(nmod(x)/5)
 
+		if(sel[1] != 1) {
+			sel <- c(1, sel)
+		}
+
 		err <- Err(x)
-		feat <- colMeans(x$features)
-		para <- colMeans(x$parameters)
+		feat <- colMeans(features_stat(x))
+		para <- colMeans(parameters_stat(x))
 
 		print(data.frame('Index: ' = sel,
-						'Lambda: ' = x$lambda[[1]][sel],
+						'Lambda: ' = x$lambda[[1]][sel]/x$lambda[[1]][1],
 						'Features: ' = print_with_metric_prefix(feat[sel]),
 						'Parameters: ' = print_with_metric_prefix(para[sel]),
 						'Error: ' = err[sel], check.names = FALSE),
@@ -478,7 +398,7 @@ sgl_print <- function(x) {
 		sel <- which(err == min(err))[1]
 
 		print(data.frame('Index: ' = sel,
-						'Lambda: ' = x$lambda[[1]][sel],
+						'Lambda: ' = x$lambda[[1]][sel]/x$lambda[[1]][1],
 						'Features: ' = print_with_metric_prefix(feat[sel]),
 						'Parameters: ' = print_with_metric_prefix(para[sel]),
 						'Error: ' = err[sel], check.names = FALSE),
@@ -498,13 +418,17 @@ sgl_print <- function(x) {
 			sel <- 1:5*floor(nrow(err)/5)
 		}
 
+		if(sel[1] != 1) {
+			sel <- c(1, sel)
+		}
+
 		model.sel <- apply(err[sel,], 1, function(y) which(min(y) == y)[1])
 		feat <- sapply(1:length(sel), function(i) x$features[sel[i], model.sel[i]])
 		para <- sapply(1:length(sel), function(i) x$parameters[sel[i], model.sel[i]])
 
 		print(data.frame('Subsample: ' = sel,
 						'Model index: ' = model.sel,
-						'Lambda: ' = sapply(1:length(sel), function(i) x$lambda[[ sel[i] ]][ model.sel[i] ]),
+						'Lambda: ' = sapply(1:length(sel), function(i) x$lambda[[ sel[i] ]][ model.sel[i] ]/x$lambda[[ sel[i] ]][1]),
 						'Features: ' = print_with_metric_prefix(feat),
 						'Parameters: ' = print_with_metric_prefix(para),
 						'Error: ' = sapply(1:length(sel), function(i) err[sel[i], model.sel[i]]), check.names = FALSE),
@@ -515,14 +439,14 @@ sgl_print <- function(x) {
 	} else if(x$type == "predict") {
 
 		cat("\nPredictions for ")
-		cat(x$n.samples)
+		cat(x$n_samples)
 		cat(" samples at ")
 		cat(length(x$lambda))
 		cat(" lambda values.\n\n")
 
 		cat("Lambda values: ")
 		if(length(x$lambda) >= 4) {
-			cat(paste(c(round(x$lambda[1:3],3), "...", x$lambda[length(x$lambda)]), collapse = " "))
+			cat(paste(c(round(x$lambda[1:3],3), "...", round(x$lambda[length(x$lambda)], 3)), collapse = " "))
 		} else {
 			cat(paste(x$lambda, collapse = " "))
 		}
@@ -559,12 +483,11 @@ print_with_metric_prefix <- function(x, digits = 3) {
 		return(sapply(x, function(y) print_with_metric_prefix(y, digits = digits)))
 	}
 
-	metric_factor <-  c(1e+00, 1e+03, 1e+06, 1e+09)
-
+	select_factor <- c(0, 1e3, 1e5, 1e8)
+	metric_factor <-  c(1, 1e+03, 1e+06, 1e+09)
 	prefix <- c("", "k", "M", "G")
 
-	sel <- max(which(x >= metric_factor))
-
+	sel <- max(which(x >= select_factor))
 	txt <- paste(round(x/metric_factor[sel], digits = digits), prefix[sel], sep="")
 
 	return(txt)

@@ -23,6 +23,7 @@
 #include "rtools/rList.h"
 #include "rtools/get_value.h"
 #include "rtools/rObject_def.h"
+#include "rtools/test.h"
 
 void report_error(const char *msg) {
     Rf_error(msg);

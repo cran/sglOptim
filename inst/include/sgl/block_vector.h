@@ -44,15 +44,21 @@ class BlockVector {
 
     BlockVector<MATRIX, VECTOR>();
 
-    BlockVector<MATRIX, VECTOR>(sgl::DimConfig const& dim);
+    BlockVector<MATRIX, VECTOR>(
+      arma::u32 unit_size,
+      arma::uvec block_sizes)
+    ;
 
     BlockVector<MATRIX, VECTOR>(BlockVector<MATRIX, VECTOR> const& source);
 
-    BlockVector<MATRIX, VECTOR>(
-      MATRIX const& source,
-      const sgl::DimConfig & dim);
+    // BlockVector<MATRIX, VECTOR>(
+    //   MATRIX const& source,
+    //   const sgl::DimConfig & dim);
 
-    void set_dim(sgl::DimConfig const& dim);
+    void set_dim(
+      arma::u32 unit_size,
+      arma::uvec block_sizes)
+    ;
 
     void copy_size(BlockVector<MATRIX, VECTOR> const& source);
 
@@ -103,12 +109,14 @@ template<typename MATRIX, typename VECTOR>
       n_nonzero_blocks(0) {}
 
 template<typename MATRIX, typename VECTOR>
-  BlockVector<MATRIX, VECTOR>::BlockVector(const sgl::DimConfig & dim) :
-      matrix(dim.block_unit_dim, dim.dim / dim.block_unit_dim),
-      block_pos(compute_block_pos(matrix.n_rows, dim.block_dim)),
-      block_sizes(dim.block_dim),
-      n_blocks(dim.n_blocks),
-      n_elem(dim.dim),
+  BlockVector<MATRIX, VECTOR>::BlockVector(
+    arma::u32 unit_size,
+    arma::uvec block_sizes) :
+      matrix(unit_size, sum(block_sizes) / unit_size),
+      block_pos(compute_block_pos(unit_size, block_sizes)),
+      block_sizes(block_sizes),
+      n_blocks(block_sizes.n_elem),
+      n_elem(sum(block_sizes)),
       n_nonzero(0),
       n_nonzero_blocks(0) {}
 
@@ -122,51 +130,57 @@ template<typename MATRIX, typename VECTOR>
       n_nonzero(source.n_nonzero),
       n_nonzero_blocks(source.n_nonzero_blocks) {}
 
-template<typename MATRIX, typename VECTOR>
-  BlockVector<MATRIX, VECTOR>::BlockVector(
-
-    const MATRIX & source,
-    const sgl::DimConfig & dim) :
-
-    matrix(source),
-    block_pos(compute_block_pos(matrix.n_rows, dim.block_dim)),
-    block_sizes(dim.block_dim),
-    n_blocks(dim.n_blocks),
-    n_elem(dim.dim),
-    n_nonzero(source.n_nonzero),
-    n_nonzero_blocks(0) {
-
-    //Compute n_nonzero_blocks
-
-    arma::u32 nonzero_blocks = 0;
-    for (arma::u32 i = 0; i < n_blocks; ++i)
-      {
-        if (!is_cols_zero(matrix, block_pos(i), block_pos(i + 1) - 1))
-          {
-            ++nonzero_blocks;
-          }
-      }
-
-    const_cast<arma::u32&>(this->n_nonzero_blocks) = nonzero_blocks;
-
-  }
+// template<typename MATRIX, typename VECTOR>
+//   BlockVector<MATRIX, VECTOR>::BlockVector(
+//
+//     const MATRIX & source,
+//     const sgl::DimConfig & dim) :
+//
+//     matrix(source),
+//     block_pos(compute_block_pos(matrix.n_rows, dim.block_dim)),
+//     block_sizes(dim.block_dim),
+//     n_blocks(dim.n_blocks),
+//     n_elem(dim.dim),
+//     n_nonzero(source.n_nonzero),
+//     n_nonzero_blocks(0) {
+//
+//     //Compute n_nonzero_blocks
+//
+//     arma::u32 nonzero_blocks = 0;
+//     for (arma::u32 i = 0; i < n_blocks; ++i)
+//       {
+//         if (!is_cols_zero(matrix, block_pos(i), block_pos(i + 1) - 1))
+//           {
+//             ++nonzero_blocks;
+//           }
+//       }
+//
+//     const_cast<arma::u32&>(this->n_nonzero_blocks) = nonzero_blocks;
+//
+//   }
 
 template<typename MATRIX, typename VECTOR>
   void
-  BlockVector<MATRIX, VECTOR>::set_dim(const sgl::DimConfig & dim)
-  {
-    matrix.set_size(dim.block_unit_dim, dim.dim / dim.block_unit_dim);
+  BlockVector<MATRIX, VECTOR>::set_dim(
+    arma::u32 unit_size,
+    arma::uvec block_sizes) {
+
+    arma::u32 dim = sum(block_sizes);
+
+    matrix.set_size(unit_size, dim / unit_size);
     matrix.zeros();
 
-    const_cast<arma::uvec&>(this->block_sizes) = dim.block_dim;
-    const_cast<arma::u32&>(this->n_blocks) = dim.n_blocks;
-    const_cast<arma::u32&>(this->n_elem) = dim.dim;
+    const_cast<arma::uvec&>(this->block_sizes) = block_sizes;
+    const_cast<arma::u32&>(this->n_blocks) = block_sizes.n_elem;
+    const_cast<arma::u32&>(this->n_elem) = dim;
     const_cast<arma::u32&>(this->n_nonzero) = 0;
     const_cast<arma::u32&>(this->n_nonzero_blocks) = 0;
 
-    const_cast<arma::uvec&>(this->block_pos) = compute_block_pos(matrix.n_rows,
-        block_sizes);
-
+    const_cast<arma::uvec&>(this->block_pos)
+      = compute_block_pos(
+        matrix.n_rows,
+        block_sizes
+      );
   }
 
 template<typename MATRIX, typename VECTOR>

@@ -17,6 +17,8 @@
 #define ROBJECT_DECL_H_
 
 class rList;
+
+template<typename T>
 class elements;
 
 class rObject {
@@ -45,21 +47,19 @@ public:
 	rObject(arma::u32 value, bool no_protect = false);
 	rObject(double value, bool no_protect = false);
   rObject(int value, bool no_protect = false);
+	rObject(bool value, bool no_protect = false);
 
 	rObject(arma::Mat<double> const& m, bool no_protect = false);
 	rObject(arma::Mat<arma::u32> const& m, bool no_protect = false);
   rObject(arma::Mat<int> const& m, bool no_protect = false);
-  rObject(arma::Mat<char> const& m, bool no_protect = false);
 
   rObject(arma::Col<double> const& v, bool no_protect = false);
   rObject(arma::Col<arma::u32> const& v, bool no_protect = false);
   rObject(arma::Col<int> const& v, bool no_protect = false);
-  rObject(arma::Col<char> const& v, bool no_protect = false);
 
 	rObject(arma::sp_mat const& m, bool no_protect = false);
 
   rObject(std::vector<int> const& v, bool no_protect = false);
-
   rObject(std::vector<std::string> const& v, bool no_protect = false);
   rObject(std::string const& str, bool no_protect = false);
 
@@ -68,7 +68,8 @@ public:
 
 	rObject(rList const& list, bool no_protect = false);
 
-	rObject(elements const& elms, bool no_protect = false);
+	template<typename T>
+	rObject(elements<T> const& elms, bool no_protect = false);
 
 	~rObject();
 

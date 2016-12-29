@@ -19,6 +19,7 @@
 #ifndef SGL_H_
 #define SGL_H_
 
+#define R_NO_REMAP
 
 //Progress monitor
 #include <progress.hpp>
@@ -47,6 +48,17 @@
 #define NDEBUG
 #endif
 
+// Registration helper macros
+#define STR_VALUE(x) #x
+#define GET_STR_VALUE(x) STR_VALUE(x)
+
+#define CREATE_FUN_NAME(METHOD, MODULE) MODULE ## _ ## METHOD
+#define CREATE_R_FUN_NAME(METHOD, MODULE) r_ ## MODULE ## _ ## METHOD
+#define FUN_NAME(METHOD, MODULE) CREATE_FUN_NAME(METHOD, MODULE)
+#define R_FUN_NAME(METHOD, MODULE) CREATE_R_FUN_NAME(METHOD, MODULE)
+
+#define CALL_METHOD(METHOD, MODULE, ARGS) {GET_STR_VALUE(FUN_NAME(METHOD,MODULE)), (DL_FUNC) &r_ ## MODULE ## _ ## METHOD, ARGS}
+
 //Support for xl matrices
 //#define ARMA_64BIT_WORD
 
@@ -58,9 +70,6 @@
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/tuple/tuple.hpp>
 using boost::tuple;
-
-//Tools
-#include <tools.h>
 
 #include <limits>
 #include <time.h>
@@ -76,11 +85,11 @@ using boost::tuple;
 
 //sgl
 namespace sgl {
+#include "sgl/block_vector.h"
 #include "sgl/numeric.h"
 #include "sgl/error.h"
 #include "sgl/algorithm_config.h"
 #include "sgl/dim_config.h"
-#include "sgl/block_vector.h"
 #include "sgl/sgl_problem.h"
 #include "sgl/sgl_tester.h"
 #include "sgl/sgl_optimizer.h"
@@ -90,21 +99,9 @@ namespace sgl {
 #include "sgl/objective/sgl_gl_loss_base.h"
 #include "sgl/objective/sgl_gl_loss_dense.h"
 #include "sgl/objective/sgl_gl_loss_sparse.h"
-#include "sgl/objective/simplifier.h"
 #include "sgl/objective/linear_response.h"
 #include "sgl/objective/linear_predictor.h"
 }
 
-// Registration helper macros
-
-#define STR_VALUE(x) #x
-#define GET_STR_VALUE(x) STR_VALUE(x)
-
-#define CREATE_FUN_NAME(METHOD, MODULE) MODULE ## _ ## METHOD
-#define CREATE_R_FUN_NAME(METHOD, MODULE) r_ ## MODULE ## _ ## METHOD
-#define FUN_NAME(METHOD, MODULE) CREATE_FUN_NAME(METHOD, MODULE)
-#define R_FUN_NAME(METHOD, MODULE) CREATE_R_FUN_NAME(METHOD, MODULE)
-
-#define CALL_METHOD(METHOD, MODULE, ARGS) {GET_STR_VALUE(FUN_NAME(METHOD,MODULE)), (DL_FUNC) &r_ ## MODULE ## _ ## METHOD, ARGS}
 
 #endif /* SGL_H_ */

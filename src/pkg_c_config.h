@@ -57,25 +57,8 @@ SEXP pkg_c_config() {
 
 SEXP r_pkg_c_config() {
 
-	try {
-
+	SGL_TRY {
 		return pkg_c_config();
+	} SGL_CATCH_ERROR
 
-		//Catch unhandled exceptions
-
-	} catch (std::exception & e) {
-
-		if (e.what() != NULL) {
-			report_error(e.what());
-		}
-
-		else {
-			report_error("Unknown error");
-		}
-
-	} catch (...) {
-		report_error("Unknown error");
-	}
-
-	return R_NilValue; //Avoid compiler warnings
 }

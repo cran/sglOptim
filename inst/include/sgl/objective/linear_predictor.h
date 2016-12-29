@@ -19,53 +19,62 @@
 #ifndef LINEAR_PREDICTOR_H_
 #define LINEAR_PREDICTOR_H_
 
+
+
 template < typename T , typename R >
 class LinearPredictor {
 
 public:
 
-	typedef sgl::MatrixData < T > data_type;
+	typedef MatrixData < T > data_type;
 	typedef R response_type;
 
-    inline const arma::field < response_type > predict(const data_type & data,
-			const sgl::sparse_matrix_field & parameters) const
-	{
+	// Returns a filed of fileds of response types
+	// structered in the following way:
+	// sample 1 - model (lambda) 1 - response element
+	//          - model (lambda) 2 - response element
+	//          - ...
+	// sample 2 - model (lambda) 1 - response element
+	//          - model (lambda) 2 - response element
+	//          - ...
+	// ...
+	const arma::field < arma::field < response_type > > predict(
+		data_type const& data,
+		sparse_matrix_field const& parameters) const {
 
-        arma::field < response_type > response(data.data_matrix.n_rows, parameters.n_elem);
+			natural n_samples = data.data_matrix.n_rows;
+			natural n_models = parameters.n_elem;
 
-		for (sgl::natural j = 0; j < parameters.n_elem; ++j)
-		{
+			arma::field < arma::field < response_type > > responses(n_samples);
 
-			response.col(j) = do_predict(data.data_matrix, parameters(j));
-		}
+			// Set size of inner field
+			for (natural j = 0; j < n_samples; ++j) {
+				responses(j).set_size(n_models);
+			}
 
-		return response;
+			// do predictions
+			for (natural i = 0; i < n_models; ++ i) {
+				predict(responses, data, parameters(i), i);
+			}
+
+		return responses;
 	}
 
-    inline const arma::field < response_type > predict(const data_type & data,
-			const sgl::parameter & parameters) const
-	{
-		return do_predict(data.data_matrix, parameters);
-	}
+	// insert predictions in responses at lambda index = index.
+	void predict(
+		arma::field < arma::field < response_type > > & responses,
+		data_type const& data,
+		sparse_matrix const& x,
+		natural index) const {
 
-private:
+			natural n_samples = data.data_matrix.n_rows;
 
-    arma::field < response_type > const do_predict(T const& X, const sgl::sparse_matrix & beta) const
-	{
+			matrix lp(data.data_matrix * trans(x));
+			lp = trans(lp);
 
-		sgl::natural n_samples = X.n_rows;
-
-		arma::field < response_type > response(n_samples);
-
-		sgl::matrix lp(X * trans(beta));
-		lp = trans(lp);
-
-		for (sgl::natural i = 0; i < n_samples; ++i)
-		{
-			response(i) = response_type(static_cast < sgl::vector >(lp.col(i)));
-		}
-
-		return response;
+			for (natural i = 0; i < n_samples; ++i) {
+				responses(i)(index) = response_type(static_cast < vector >(lp.col(i)));
+			}
 
 	}
 

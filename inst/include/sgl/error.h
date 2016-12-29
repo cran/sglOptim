@@ -62,13 +62,49 @@ static bool sgl_interrupt = false;
 #define SGL_INTERRUPT sgl_interrupt = true;
 #endif
 
+#ifndef SGL_TRY
+#define SGL_TRY try
+#endif
+
+#ifndef SGL_CATCH_ERROR
+#define SGL_CATCH_ERROR catch (std::exception & e) { \
+	if(e.what() != NULL) { 	\
+		SGL_ERROR(e.what());	\
+	}	\
+\
+	else {	\
+		SGL_ERROR("Unknown error"); \
+	} \
+\
+} catch (...) { \
+	SGL_ERROR("Unknown error"); \
+} \
+\
+return R_NilValue; //Avoid compiler warnings
+#endif
+
+
+
 //Debug
 
+std::string create_error_msg(
+		const char * msg,
+		const char * file_name,
+		int line_number) {
+
+	std::ostringstream error_msg;
+
+  error_msg << msg <<	" (Assert failed in " <<
+		file_name << " at line " <<	line_number << " )";
+
+  return error_msg.str();
+}
+
 #ifdef SGL_RUNTIME_CHECKS
-	#define ASSERT_IS_FINITE(x) if(!sgl::is_finite(x)) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-	#define ASSERT_IS_NUMBER(x) if(x != x) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-	#define ASSERT_IS_POSITIVE(x) if(x <= 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-	#define ASSERT_IS_NON_NEGATIVE(x) if(x < 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_FINITE(x) if(!sgl::is_finite(x)) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NUMBER(x) if(x != x) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_POSITIVE(x) if(x <= 0) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NON_NEGATIVE(x) if(x < 0) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
 #else
 	#define ASSERT_IS_FINITE(x) //do nothing
 	#define ASSERT_IS_NUMBER(x) //do nothing
@@ -77,8 +113,8 @@ static bool sgl_interrupt = false;
 #endif
 
 #ifdef SGL_DEBUG_SIMPLE
-	#define ASSERT_IS_ZERO(x) if(accu(x != 0) > 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
-	#define ASSERT_IS_NON_ZERO(x) if(accu(x != 0) == 0) throw std::runtime_error(create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_ZERO(x) if(accu(x != 0) > 0) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
+	#define ASSERT_IS_NON_ZERO(x) if(accu(x != 0) == 0) throw std::runtime_error(sgl::create_error_msg(sgl::numerical_error_msg.c_str(), __FILE__, __LINE__));
 #else
 	#define ASSERT_IS_ZERO(x) //do nothing
 	#define ASSERT_IS_NON_ZERO(x) //do nothing

@@ -16,13 +16,15 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>
 */
 
+using namespace sgl;
+
 // Registration macro
 #ifndef SGL_PREDICT
 #define SGL_PREDICT(MODULE) CALL_METHOD(sgl_predict, MODULE, 2)
 #endif
 
 extern "C" {
-SEXP R_FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta);
+	SEXP R_FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta);
 }
 
 SEXP FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta) {
@@ -32,38 +34,21 @@ SEXP FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta) {
 	const PREDICTOR::data_type data(data_rList);
 
 	//Parameters
-	const sgl::sparse_matrix_field beta = get_field < sgl::sparse_matrix > (r_beta);
+	const sparse_matrix_field beta = get_field < sparse_matrix > (r_beta);
 
+	//Init predictor
 	PREDICTOR predictor;
-    arma::field<PREDICTOR::response_type> responses = predictor.predict(data, beta);
 
-    rList res;
-    res.attach(PREDICTOR::response_type::simplify(responses), "responses");
+	//Do predictions
+	arma::field< arma::field < PREDICTOR::response_type > > responses
+		= predictor.predict(data, beta);
 
-    return rObject(res);
+	return rObject(responses);
 }
 
 SEXP R_FUN_NAME(sgl_predict, MODULE_NAME) (SEXP r_data, SEXP r_beta) {
 
-	try {
-
+	SGL_TRY {
 		return FUN_NAME(sgl_predict, MODULE_NAME) (r_data, r_beta);
-
-		//Catch unhandled exceptions
-
-		} catch (std::exception & e) {
-
-			if(e.what() != NULL) {
-				SGL_ERROR(e.what());
-			}
-
-			else {
-				SGL_ERROR("Unknown error");
-			}
-
-		} catch (...) {
-			SGL_ERROR("Unknown error");
-		}
-
-	return R_NilValue; //Avoid compiler warnings
+	} SGL_CATCH_ERROR
 }

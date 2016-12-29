@@ -23,9 +23,10 @@ Rearrange the order of the covariates in a sgldata object.
 Martin Vincent
 }
 \seealso{
-Other sgldata: \code{\link{create.sgldata}},
+Other sgldata: \code{\link{add_data.sgldata}},
+  \code{\link{create.sgldata}},
   \code{\link{prepare.args.sgldata}},
-  \code{\link{prepare.args}},
+  \code{\link{prepare.args}}, \code{\link{prepare_data}},
   \code{\link{subsample.sgldata}}
 }
 

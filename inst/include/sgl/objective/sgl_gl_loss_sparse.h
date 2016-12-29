@@ -154,11 +154,8 @@ inline sgl::matrix const GenralizedLinearLossSparse < T >::hessian_diag(
 
 					if (vi2 != 0)
 					{
-						J += vi2 * tmp.values[i1]*T::hessians(row1);
-
-	//					hessian_diag_mat(block_index).submat(j * n_groups, k * n_groups,
-	//							(j + 1) * n_groups - 1, (k + 1) * n_groups - 1) += vi2 * tmp.values[i1]
-	//							* T::hessians(row1);
+						hessian_type::scalar_mult_add(J, vi2*tmp.values[i1], T::hessians(row1));
+						//J += vi2 * tmp.values[i1]*T::hessians(row1);
 					}
 				}
 

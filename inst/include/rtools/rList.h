@@ -27,14 +27,9 @@ private:
 
 public:
 
-	rList()
-			: objects(), names()
-	{
-	}
+	rList()	: objects(), names() {}
 
-	rList(SEXP list)
-			: objects(), names()
-	{
+	rList(SEXP list) : objects(), names() {
 
 		SEXP SEXP_names = Rf_getAttrib(list, R_NamesSymbol);
 
@@ -61,29 +56,24 @@ public:
 	{
 	}
 
-    void attach(rObject const& object, std::string const& name)
-	{
+  void attach(rObject const& object, std::string const& name) {
 		objects.push_back(object);
 		names.push_back(name);
-
 	}
 
-	rObject get(unsigned int index) const
-	{
+	rObject get(unsigned int index) const {
 		return objects[index];
 	}
 
-    std::string getName(unsigned int index) const
-	{
+  std::string getName(unsigned int index) const {
 		return names[index];
 	}
 
-	unsigned int length() const
-	{
+	unsigned int length() const {
 		return objects.size();
 	}
 
-    int getIndex(std::string const& name) const
+  int getIndex(std::string const& name) const
 	{
 
         for (unsigned int index = 0; index < objects.size(); ++index)
@@ -100,10 +90,12 @@ public:
 
 };
 
-
+template<typename T>
 class elements {
 public:
-  virtual rList as_rList() const;
+  rList as_rList() const {
+    return static_cast<T const * >(this) -> as_rList();
+  }
 };
 
 #endif /* RLIST_H_ */

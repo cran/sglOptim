@@ -4,8 +4,10 @@
 \alias{sgl_subsampling}
 \title{Generic sparse group lasso subsampling procedure}
 \usage{
-sgl_subsampling(module_name, PACKAGE, data, parameterGrouping, groupWeights,
-  parameterWeights, alpha, lambda, training, test, collapse = FALSE,
+sgl_subsampling(module_name, PACKAGE, data, parameterGrouping = NULL,
+  groupWeights = NULL, parameterWeights = NULL, alpha, lambda, d = 100,
+  compute_lambda = length(lambda) == 1, training = NULL, test = NULL,
+  responses = NULL, auto_response_names = TRUE, collapse = FALSE,
   max.threads = NULL, use_parallel = FALSE,
   algorithm.config = sgl.standard.config)
 }
@@ -24,7 +26,11 @@ sgl_subsampling(module_name, PACKAGE, data, parameterGrouping, groupWeights,
 
 \item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
 
-\item{lambda}{the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.}
+\item{lambda}{lambda.min relative to lambda.max (if \code{compute_lambda = TRUE}) or the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.}
+
+\item{d}{length of lambda sequence (ignored if \code{compute_lambda = FALSE})}
+
+\item{compute_lambda}{should the lambda sequence be computed}
 
 \item{training}{a list of training samples, each item of the list corresponding to a subsample.
 Each item in the list must be a vector with the indices of the training samples for the corresponding subsample.
@@ -34,7 +40,11 @@ The length of the list must equal the length of the \code{test} list.}
 Each item in the list must be vector with the indices of the test samples for the corresponding subsample.
 The length of the list must equal the length of the \code{training} list.}
 
-\item{collapse}{if \code{TRUE} the results for each subsample will be collapse into one result (this is useful if the subsamples are not overlapping)}
+\item{responses}{a vector of responses to simplify and return (if NULL (deafult) no formating will be done)}
+
+\item{auto_response_names}{set response names}
+
+\item{collapse}{if \code{TRUE} the results will be collapsed and ordered into one result, resembling the output of \code{sgl_predict}  (this is only valid if the test samples are not overlapping)}
 
 \item{max.threads}{Deprecated (will be removed in 2018),
 instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
@@ -45,13 +55,56 @@ The maximal number of threads to be used.}
 \item{algorithm.config}{the algorithm configuration to be used.}
 }
 \value{
+\item{Y.true}{the response, that is the \code{y} object in data as created by \code{create.sgldata}.}
 \item{responses}{content will depend on the C++ response class}
 \item{features}{number of features used in the models}
 \item{parameters}{number of parameters used in the models}
 \item{lambda}{the lambda sequences used (a vector or list of length \code{length(training)}).}
 }
 \description{
-Support the use of multiple processors.
+Subsampling procedure with support parallel computations.
+}
+\details{
+If no formating is done (i.e. if \code{responses = NULL})
+then the \code{responses} field contains a list of lists structured in the following way:
+
+subsamples 1:
+\itemize{
+\item{sample \code{test[[1]][1]}}{
+	\itemize{
+ \item{model (lambda) index 1}{
+  	\itemize{
+      \item{}{response elements}
+	 }}
+ \item{model (lambda) index 2}{
+  	\itemize{
+      \item{}{response elements}
+	 }}
+ \item{...}{}
+}}
+\item{sample \code{test[[1]][2]}}{
+	\itemize{
+ \item{model (lambda) index 1}{
+  	\itemize{
+      \item{}{response elements}
+	 }}
+ \item{model (lambda) index 2}{
+  	\itemize{
+      \item{}{response elements}
+	 }}
+ \item{...}{}
+ }}
+\item{...}{}
+}
+subsamples 2:
+ ...
+
+If \code{responses = "rname"} with \code{rname} the name of the response then a list at \code{responses$rname} will be returned.
+The content of the list will depend on the type of the response.
+\itemize{
+\item{vector}{ A list with format subsamples -> models -> matrix of dimension \eqn{n_i \times q} containing the responses for the corresponding model and subsample (where \eqn{q} is the dimension of the response).}
+\item{matrix}{ A list with format subsamples -> samples -> models - > the response matrix.}
+}
 }
 \author{
 Martin Vincent

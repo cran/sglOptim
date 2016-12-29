@@ -4,8 +4,9 @@
 \alias{prepare.args.sgldata}
 \title{Prepare sgl function arguments}
 \usage{
-\method{prepare.args}{sgldata}(data, parameterGrouping, groupWeights,
-  parameterWeights, alpha, test_data = NULL, ...)
+\method{prepare.args}{sgldata}(data, parameterGrouping = NULL,
+  groupWeights = NULL, parameterWeights = NULL, parameterNames = NULL,
+  alpha, test_data = NULL, ...)
 }
 \arguments{
 \item{data}{a sgldata object}
@@ -15,6 +16,8 @@
 \item{groupWeights}{the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).}
 
 \item{parameterWeights}{a matrix of size \eqn{q \times p}, that is the same dimension as \eqn{\beta}.}
+
+\item{parameterNames}{dim-names of parameters, if NULL \code{dimnames(parameterWeights)} will be used.}
 
 \item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
 
@@ -29,8 +32,9 @@ Prepare sgl function arguments using sgldata.
 Martin Vincent
 }
 \seealso{
-Other sgldata: \code{\link{create.sgldata}},
-  \code{\link{prepare.args}},
+Other sgldata: \code{\link{add_data.sgldata}},
+  \code{\link{create.sgldata}}, \code{\link{prepare.args}},
+  \code{\link{prepare_data}},
   \code{\link{rearrange.sgldata}},
   \code{\link{subsample.sgldata}}
 }

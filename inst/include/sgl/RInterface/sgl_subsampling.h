@@ -47,9 +47,6 @@ SEXP FUN_NAME(sgl_subsampling, MODULE_NAME)(
 	rList rlist_config(r_config);
 	const sgl::AlgorithmConfiguration config(rlist_config);
 
-	//Data and objective
-	//const rList data_train_rList(r_data_train);
-	//TODO remove ? const rList data_test_rList(r_data_test);
 	const OBJECTIVE::data_type data_train(r_data_train);
 	const OBJECTIVE::data_type data_test(r_data_test);
 	const OBJECTIVE obj_type(data_train);
@@ -71,7 +68,7 @@ SEXP FUN_NAME(sgl_subsampling, MODULE_NAME)(
 	const sgl::vector lambda_seq = get_value < sgl::vector > (r_lambda_seq);
 
   boost::tuple<
-		arma::field<PREDICTOR::response_type>,
+		arma::field< arma::field< PREDICTOR::response_type > >,
 		sgl::natural_vector,
 		sgl::natural_vector> response_field
 		 = sgl_optimizer.subsamplerun(
@@ -82,7 +79,7 @@ SEXP FUN_NAME(sgl_subsampling, MODULE_NAME)(
 //Build result R list
 rList res;
 
-res.attach(rObject(PREDICTOR::response_type::simplify(response_field.get<0>())), "responses");
+res.attach(rObject(response_field.get<0>()), "responses");
 res.attach(rObject(response_field.get<1>()), "features");
 res.attach(rObject(response_field.get<2>()), "parameters");
 
@@ -100,8 +97,7 @@ SEXP R_FUN_NAME(sgl_subsampling, MODULE_NAME)(
 	SEXP r_lambda_seq,
 	SEXP r_config) {
 
-	try {
-
+	SGL_TRY {
 		return FUN_NAME(sgl_subsampling, MODULE_NAME)(
 			r_data_train,
 			r_data_test,
@@ -111,21 +107,6 @@ SEXP R_FUN_NAME(sgl_subsampling, MODULE_NAME)(
 			r_alpha,
       r_lambda_seq,
 			r_config);
+	} SGL_CATCH_ERROR
 
-		//Catch unhandled exceptions
-
-	} catch (std::exception & e) {
-
-		if(e.what() != NULL) {
-			SGL_ERROR(e.what());
-		}
-
-		else {
-			SGL_ERROR("Unknown error");
-		}
-
-	} catch (...) {
-		SGL_ERROR("Unknown error");
-	}
-	return R_NilValue; //Avoid compiler warnings
 }

@@ -19,94 +19,63 @@
 #ifndef SGLPROBLEM_H_
 #define SGLPROBLEM_H_
 
-//TODO clean up together with sgl_optimizer.h + comment and doc functions
+//NOTE clean up together with sgl_optimizer.h + comment and doc functions
 
-class SglProblem
-  {
+class SglProblem {
 
-  public:
+public:
 
-    DimConfig const& setup;
+  DimConfig const& setup;
 
-    AlgorithmConfiguration const& config;
+  AlgorithmConfiguration const& config;
 
-    SglProblem(DimConfig const& dim_config, AlgorithmConfiguration const& config) :
-        setup(dim_config), config(config)
-    {
-    }
+  SglProblem(
+    DimConfig const& dim_config,
+    AlgorithmConfiguration const& config) :
+      setup(dim_config), config(config) {}
 
-    sgl::numeric
-    penalty(sgl::parameter const& x, sgl::numeric const alpha,
-        sgl::numeric const lambda) const;
+  sgl::numeric penalty(
+    sgl::parameter const& x,
+    sgl::numeric const alpha,
+    sgl::numeric const lambda) const
+  ;
 
-    bool has_unpenalized_paramters(sgl::numeric const alpha) const;
+  bool has_unpenalized_paramters(
+    sgl::numeric const alpha) const
+  ;
 
-    //lambda max
-    sgl::numeric
-    compute_critical_lambda(sgl::vector v, sgl::vector z, sgl::numeric b) const;
-    sgl::numeric
-    compute_critical_lambda(const sgl::vector & gradient, sgl::numeric const alpha) const;
+  //lambda max
+  sgl::numeric compute_critical_lambda(
+    sgl::vector v,
+    sgl::vector z,
+    sgl::numeric b) const
+  ;
 
-    //Distance use for stopping conditions
-    //TODO move dist code to numeric
-    sgl::numeric
-    dist(sgl::parameter const& x0, sgl::parameter const& x1) const;
-    sgl::numeric
-    max_dist(sgl::parameter_block_vector const& x0,
-        sgl::parameter_block_vector const& x1) const;
-    sgl::numeric
-    discrete_dist(sgl::parameter const& x0, sgl::parameter const& x1) const;
+  sgl::numeric compute_critical_lambda(
+    const sgl::vector & gradient,
+    sgl::numeric const alpha) const
+  ;
 
-    bool
-    is_block_active(const sgl::vector & block_gradient,
-        sgl::natural const block_index, sgl::numeric const alpha,
-        sgl::numeric const lambda) const;
+  bool is_block_active(
+    const sgl::vector & block_gradient,
+    sgl::natural const block_index,
+    sgl::numeric const alpha,
+    sgl::numeric const lambda) const
+  ;
 
+  sgl::numeric compute_t(
+    sgl::vector const& a,
+    sgl::numeric b) const
+  ;
 
-    sgl::numeric
-    compute_t(sgl::vector const& a, sgl::numeric b) const;
+  sgl::vector const compute_bounds(
+    sgl::vector const& gradient_at_x,
+    sgl::parameter const& x,
+    sgl::numeric const alpha,
+    sgl::numeric const lambda) const
+  ;
 
-    sgl::vector const
-    compute_bounds(const sgl::vector & gradient_at_x, sgl::parameter const& x,
-        sgl::numeric const alpha, sgl::numeric const lambda) const;
   };
-
-  sgl::numeric
-  SglProblem::max_dist(sgl::parameter_block_vector const& x0,
-      sgl::parameter_block_vector const& x1) const
-  {
-    TIMER_START;
-    return arma::as_scalar(max(abs(x0 - x1)));
-  }
-
-sgl::numeric SglProblem::dist(sgl::parameter const& x0, sgl::parameter const& x1) const {
-
-        sgl::numeric d = 0;
-        for (sgl::natural block_index = 0; block_index < setup.n_blocks; block_index++) {
-
-                if (!x0.is_block_zero(block_index) || !x1.is_block_zero(block_index)) {
-                        d += arma::as_scalar(sum(square(x0.block(block_index) - x1.block(block_index))));
-                }
-        }
-
-        return d;
-}
-
-sgl::numeric SglProblem::discrete_dist(sgl::parameter const& x0, sgl::parameter const& x1) const {
-
-        TIMER_START;
-
-        sgl::numeric d = 0;
-        for (sgl::natural block_index = 0; block_index < setup.n_blocks; block_index++) {
-
-                if (!x0.is_block_zero(block_index) || !x1.is_block_zero(block_index)) {
-                        d = std::max(d, sgl::discrete_dist(x0.block(block_index), x1.block(block_index)));
-                }
-        }
-
-        return d;
-}
-
 
 inline bool SglProblem::is_block_active(
   const sgl::vector & block_gradient,
@@ -137,12 +106,11 @@ inline bool SglProblem::is_block_active(
     return false;
 }
 
-sgl::numeric
-  SglProblem::penalty(sgl::parameter const& x, sgl::numeric const alpha,
-      sgl::numeric const lambda) const
-  {
+sgl::numeric SglProblem::penalty(
+      sgl::parameter const& x,
+      sgl::numeric const alpha,
+      sgl::numeric const lambda) const {
 
-    TIMER_START;
 
     sgl::numeric s = 0;
     for (sgl::natural block_index = 0; block_index < setup.n_blocks;
@@ -157,7 +125,7 @@ sgl::numeric
                         setup.L1_penalty_weight(block_index)
                             % abs(x.block(block_index))));
             s += lambda * (1 - alpha) * setup.L2_penalty_weight(block_index)
-                * sgl::norm(x.block(block_index));
+                * arma::norm(x.block(block_index), 2);
           }
       }
 
@@ -193,10 +161,11 @@ bool SglProblem::has_unpenalized_paramters(sgl::numeric const alpha) const {
 }
 
 
-sgl::vector const SglProblem::compute_bounds(const sgl::vector & gradient_at_x, sgl::parameter const& x, sgl::numeric const alpha,
-                sgl::numeric const lambda) const {
-
-        TIMER_START;
+sgl::vector const SglProblem::compute_bounds(
+    const sgl::vector & gradient_at_x,
+    sgl::parameter const& x,
+    sgl::numeric const alpha,
+    sgl::numeric const lambda) const {
 
         sgl::vector bounds(setup.n_blocks);
 
@@ -205,7 +174,7 @@ sgl::vector const SglProblem::compute_bounds(const sgl::vector & gradient_at_x, 
                 sgl::natural block_start = setup.block_start_index(block_index);
                 sgl::natural block_end = setup.block_end_index(block_index);
 
-                sgl::vector a = sort(abs(gradient_at_x.rows(block_start, block_end)) - lambda * alpha * setup.L1_penalty_weight(block_index), 1);
+                sgl::vector a = sort(abs(gradient_at_x.rows(block_start, block_end)) - lambda * alpha * setup.L1_penalty_weight(block_index), "descend");
                 sgl::numeric b = sgl::square(lambda * (1 - alpha) * setup.L2_penalty_weight(block_index));
 
                 if (x.is_block_zero(block_index)) {
@@ -225,7 +194,7 @@ sgl::vector const SglProblem::compute_bounds(const sgl::vector & gradient_at_x, 
 
 sgl::numeric SglProblem::compute_critical_lambda(const sgl::vector & gradient, sgl::numeric const alpha) const {
 
-        TIMER_START;
+        //TIMER_START;
 
         sgl::numeric lambda = 0;
         for (sgl::natural block_index = 0; block_index < setup.n_blocks; block_index++) {
@@ -257,12 +226,12 @@ sgl::numeric SglProblem::compute_critical_lambda(const sgl::vector & gradient, s
 
 sgl::numeric SglProblem::compute_critical_lambda(sgl::vector v, sgl::vector z, sgl::numeric b) const {
 
-        //TODO debug guards
+        //NOTE debug guards
         if (accu(v < 0) > 0 || accu(z < 0) > 0) {
                 throw std::runtime_error("compute_critical_lambda : negative input values");
         }
 
-        //TODO check dim v = dim z
+        //NOTE check dim v = dim z
 
         sgl::numeric c3 = 0;
 
@@ -286,7 +255,7 @@ sgl::numeric SglProblem::compute_critical_lambda(sgl::vector v, sgl::vector z, s
                 return sqrt(c3 / b);
         }
 
-        sgl::natural_vector a = sort_index(z / v, 1);
+        sgl::natural_vector a = sort_index(z / v, "descend");
 
         sgl::numeric c1 = -b;
         sgl::numeric c2 = 0;
@@ -380,11 +349,11 @@ sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
         ASSERT_IS_NON_NEGATIVE(r);
 
         //DEBUGING
-        //TODO debug guards
+        //NOTE debug guards
 //      sgl::numeric upper = compute_K(a, r + r / 4);
 //      sgl::numeric lower = compute_K(a, r);
 //
-//      if (upper - lower < 0 || upper - b < 0 || lower - b > 1e-10) { //TODO configable
+//      if (upper - lower < 0 || upper - b < 0 || lower - b > 1e-10) { //NOTE configable
 //              cout << r << " : " << upper - lower << " : " << upper - b << " : " << lower - b << endl;
 //              throw std::runtime_error("Error computing t-bound");
 //      }

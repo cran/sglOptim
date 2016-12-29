@@ -25,7 +25,6 @@ class hessian_diagonal {
 public:
 
 	static const bool is_constant = constant;
-
 	typedef sgl::vector representation;
 
 	static void scalar_mult_add(sgl::vector & J, double s, sgl::vector const& H) {
@@ -43,7 +42,7 @@ public:
 	}
 
 	static sgl::matrix const update(sgl::vector const& H, sgl::matrix const& V, double s) {
-		return s * H % V;
+		return s * diagmat(H) * V;
 	}
 
 	static representation zero_representation_of(representation const& H) {
@@ -58,7 +57,6 @@ class hessian_identity {
 public:
 
 	static const bool is_constant = constant;
-
 	typedef double representation;
 
 	static void scalar_mult_add(double & J, double s, double H) {
@@ -177,7 +175,8 @@ public:
 
 			x.submat(
 				from_row, from_col,
-				from_row + H(i).n_cols - 1, from_col + H(i).n_cols - 1) += H(i);
+				from_row + H(i).n_cols - 1, from_col + H(i).n_cols - 1
+			) += H(i);
 
 			from_row += H(i).n_cols;
 			from_col += H(i).n_cols;
@@ -186,7 +185,7 @@ public:
 
 	static sgl::matrix update(representation const& H, sgl::matrix const& V, double s) {
 
-		sgl::vector r(V.n_rows, V.n_cols); // H is square
+		sgl::matrix r(V.n_rows, V.n_cols); // H is square
 
 		sgl::natural from = 0;
 		for(sgl::natural i = 0; i < blocks; ++i) {
@@ -294,20 +293,13 @@ GenralizedLinearLossBase < T , E >::GenralizedLinearLossBase(data_type const& da
 		  	partial_hessian(T::n_variables, n_samples),
 		  	hessian_diag_mat_computed(dim_config.n_blocks),
 		  	hessian_diag_mat(dim_config.n_blocks),
-		  	current_parameters(dim_config),
+		  	current_parameters(dim_config.block_unit_dim, dim_config.block_dim),
 		  	x_norm(dim_config.n_blocks),
 		  	recompute_hessian_norm(true)
 {
 
-	TIMER_START;
-
 	//Dim check
 	if(n_features*n_feature_parameters != dim_config.dim) {
-
-	//	std::cout << "n_features = " << n_features << std::endl;
-	//	std::cout << "n_groups = " << n_groups << std::endl;
-	//	std::cout << "dim_config.dim = " << dim_config.dim << std::endl;
-
 		throw std::runtime_error("GenralizedLinearLossBase: Dimension Mismatch -- total parameters");
 	}
 
@@ -340,9 +332,6 @@ GenralizedLinearLossBase < T , E >::GenralizedLinearLossBase(data_type const& da
 template < typename T , typename E >
 void GenralizedLinearLossBase < T , E >::at(const sgl::parameter & parameters)
 {
-
-	TIMER_START;
-	DEBUG_ENTER
 
 	current_parameters = parameters;
 
@@ -378,7 +367,7 @@ template < typename T , typename E >
 sgl::vector const GenralizedLinearLossBase < T , E >::gradient() const
 {
 
-	TIMER_START;
+	//TIMER_START
 
 	return reshape(T::gradients() * X, n_features * n_feature_parameters, 1);
 }
@@ -413,7 +402,7 @@ inline void GenralizedLinearLossBase < T , E >::compute_hessian_norm() const
 		return;
 	}
 
-	//TODO norm configable, 2-norm, 1-norm
+	//NOTE norm configable, 2-norm, 1-norm
 
 	partial_hessian_norm = sqrt(as_scalar(max(sum(square(partial_hessian), 1))));
 	//partial_hessian_norm = as_scalar(max(sum(abs(partial_hessian), 1)));

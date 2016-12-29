@@ -52,13 +52,26 @@ public:
 	const sgl::natural block_unit_dim;
 
 	DimConfig() :
-			index(static_cast<sgl::natural>(0)), L1_penalty_weights(static_cast<sgl::natural>(0)), L2_penalty_weights(
-					static_cast<sgl::natural>(0)), block_dim(static_cast<sgl::natural>(0)), n_blocks(0), dim(0), block_unit_dim(0) {
-	}
+		index(static_cast<sgl::natural>(0)),
+		L1_penalty_weights(static_cast<sgl::natural>(0)),
+		L2_penalty_weights(static_cast<sgl::natural>(0)),
+		block_dim(static_cast<sgl::natural>(0)),
+		n_blocks(0),
+		dim(0),
+		block_unit_dim(0) {}
 
-	DimConfig(sgl::natural_vector const& block_dim, sgl::natural unit_dim, sgl::vector const& L1_penalty_weights, sgl::vector const& L2_penalty_weights) :
-			index(block_dim.n_elem + 1), L1_penalty_weights(L1_penalty_weights), L2_penalty_weights(L2_penalty_weights), block_dim(
-					block_dim), n_blocks(block_dim.n_elem), dim(sum(block_dim)), block_unit_dim(unit_dim) {
+	DimConfig(
+		sgl::natural_vector const& block_dim,
+		sgl::natural unit_dim,
+		sgl::vector const& L1_penalty_weights,
+		sgl::vector const& L2_penalty_weights) :
+			index(block_dim.n_elem + 1),
+			L1_penalty_weights(L1_penalty_weights),
+			L2_penalty_weights(L2_penalty_weights),
+			block_dim(block_dim),
+			n_blocks(block_dim.n_elem),
+			dim(sum(block_dim)),
+			block_unit_dim(unit_dim) {
 
 		//Domain checks
 		if (!sgl::is_non_negative(L1_penalty_weights)) {

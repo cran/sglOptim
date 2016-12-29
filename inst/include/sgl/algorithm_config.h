@@ -57,6 +57,7 @@ public:
 	sgl::numeric const stepsize_opt_penalized_a;
 	sgl::numeric const stepsize_opt_penalized_b;
 
+	sgl::natural const max_iterations_outer;
 	sgl::natural const inner_loop_convergence_limit;
 
 	bool const verbose;
@@ -111,6 +112,10 @@ public:
 					getConfigAttribute<sgl::numeric>(config,
 							"stepsize_opt_penalized_b")),
 
+			max_iterations_outer(
+					getConfigAttribute<sgl::natural>(config,
+							"max_iterations_outer")),
+
 			inner_loop_convergence_limit(
 					getConfigAttribute<sgl::natural>(config,
 							"inner_loop_convergence_limit")),
@@ -137,6 +142,7 @@ public:
 		stepsize_opt_penalized_a(0.1),
 		stepsize_opt_penalized_b(0.5),
 
+		max_iterations_outer(1e5),
 		inner_loop_convergence_limit(1e5),
 
 		verbose(true) {

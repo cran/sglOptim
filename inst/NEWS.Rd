@@ -1,6 +1,12 @@
 \name{NEWS}
 \title{News for Package 'sglOptim'}
 
+\section{Changes in sglOptim version 1.3.5 (2016-12-28)}{
+\itemize{
+\item Internal code cleanup, bug fixes and refactoring.
+}
+}
+
 \section{Changes in sglOptim version 1.3.0 (2016-09-28)}{
 \itemize{
 \item Improved documentation and functionality:

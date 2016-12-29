@@ -2,41 +2,42 @@
 % Please edit documentation in R/lambda_sequence.R
 \name{sgl_lambda_sequence}
 \alias{sgl_lambda_sequence}
-\title{Generic routine for computing a lambda sequence for the regularization path}
+\title{Computing a Lambda Sequence}
 \usage{
-sgl_lambda_sequence(module_name, PACKAGE, data, parameterGrouping, groupWeights,
-  parameterWeights, alpha, d, lambda.min,
-  algorithm.config = sgl.standard.config, lambda.min.rel = FALSE)
+sgl_lambda_sequence(module_name, PACKAGE, data, parameterGrouping = NULL,
+  groupWeights = NULL, parameterWeights = NULL, alpha, d = 100,
+  lambda.min, algorithm.config = sgl.standard.config,
+  lambda.min.rel = FALSE)
 }
 \arguments{
 \item{module_name}{reference to objective specific C++ routines.}
 
 \item{PACKAGE}{name of the calling package.}
 
-\item{data}{a list of data objects -- will be parsed to the specified module.}
+\item{data}{list of data objects -- will be parsed to the specified module.}
 
 \item{parameterGrouping}{grouping of parameters, a vector of length \eqn{p}. Each element of the vector specifying the group of the parameters in the corresponding column of \eqn{\beta}.}
 
-\item{groupWeights}{the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).}
+\item{groupWeights}{group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).}
 
-\item{parameterWeights}{a matrix of size \eqn{q \times p}.}
+\item{parameterWeights}{parameters weights, a matrix of size \eqn{q \times p}.}
 
-\item{alpha}{the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
+\item{alpha}{the \eqn{\alpha} value, 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.}
 
-\item{d}{the length of lambda sequence.}
+\item{d}{the length of the lambda sequence.}
 
 \item{lambda.min}{the smallest lambda value in the computed sequence.}
 
-\item{algorithm.config}{the algorithm configuration to be used.}
+\item{algorithm.config}{the algorithm configuration.}
 
-\item{lambda.min.rel}{is lambda.min relative to lambda.max (i.e. actual lambda min used is \code{lambda.min*lambda.max}, with \code{lambda.max} the computed maximal lambda value)}
+\item{lambda.min.rel}{is lambda.min relative to lambda.max ? (i.e. actual lambda min used is \code{lambda.min*lambda.max}, with \code{lambda.max} the computed maximal lambda value)}
 }
 \value{
 a vector of length \code{d} containing the compute lambda sequence.
 }
 \description{
 Computes a decreasing lambda sequence of length \code{d}.
-The sequence ranges from a data determined maximal lambda \eqn{\lambda_\textrm{max}} to the user inputed \code{lambda.min}.
+The sequence ranges from a data determined maximal lambda \eqn{\lambda_\textrm{max}} to the user supplied \code{lambda.min}.
 }
 \author{
 Martin Vincent

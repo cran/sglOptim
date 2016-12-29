@@ -68,7 +68,7 @@ public:
 	template<typename Predictor>
 
 		boost::tuple<
-			arma::field<typename Predictor::response_type>,
+			arma::field< arma::field < typename Predictor::response_type > >,
 			natural_vector,
 			natural_vector>
 
@@ -114,11 +114,16 @@ sgl::numeric Interface<ObjectiveFunctionType>::lambda_max() const {
 		sgl::vector function_value(1);
 		sgl::vector lambda_sequence(1);
 
-		lambda_sequence(0) =  1e100; //TODO configable
+		lambda_sequence(0) =  1e100; //NOTE configable
 
 		//Optimize non penalized paramters
-		optimizer.optimize(x_field, needed_solutions, object_value, function_value,
-			objective, lambda_sequence, true, false);
+		optimizer.optimize(
+			x_field,
+			needed_solutions,
+			object_value,
+			function_value,
+			objective,
+			lambda_sequence, true, false);
 
 	}
 
@@ -160,7 +165,7 @@ inline sgl::natural Interface<ObjectiveFunctionType>::optimize(
 		throw std::domain_error("the lambda sequence must be decreasing and positive");
 	}
 
-	//TODO check that all elements of needed_solutions are unique and less than the length of lambda_sequence
+	//NOTE check that all elements of needed_solutions are unique and less than the length of lambda_sequence
 
 	typename ObjectiveFunctionType::instance_type objective = objective_type.create_instance(sgl.setup);
 
@@ -178,7 +183,7 @@ inline sgl::natural Interface<ObjectiveFunctionType>::optimize(
 template<typename ObjectiveFunctionType>
 template<typename Predictor>
 inline boost::tuple<
-				arma::field<typename Predictor::response_type>,
+				arma::field< arma::field < typename Predictor::response_type > >,
 				sgl::natural_vector,
 				sgl::natural_vector>
 
@@ -196,20 +201,26 @@ inline boost::tuple<
 
 	//length of lambda sequence
 	sgl::index len_lambda = lambda_sequence.n_elem;
+	sgl::natural n_samples = test_data.data_matrix.n_rows;
 
 	//result containers
-	arma::field<typename Predictor::response_type>
-		response_field(test_data.data_matrix.n_rows, len_lambda);
+	arma::field < arma::field < typename Predictor::response_type > > responses(n_samples);
+
+		// Set size of inner field
+		for (natural j = 0; j < n_samples; ++j) {
+			responses(j).set_size(len_lambda);
+		}
 
 	sgl::natural_vector number_of_features(len_lambda);
 	sgl::natural_vector number_of_parameters(len_lambda);
 
+  // Create objective
  	typename ObjectiveFunctionType::instance_type
 		objective(objective_type.create_instance(sgl.setup));
 
 	//Fit
-	sgl::parameter x(sgl.setup);
-	sgl::parameter x0(sgl.setup);
+	sgl::parameter x(sgl.setup.block_unit_dim, sgl.setup.block_dim);
+	sgl::parameter x0(sgl.setup.block_unit_dim, sgl.setup.block_dim);
 	sgl::vector gradient(sgl.setup.dim);
 
 	//Start at zero
@@ -232,7 +243,7 @@ inline boost::tuple<
 		number_of_parameters(lambda_index) = x.n_nonzero;
 
 		//Predict
-		response_field.col(lambda_index) = predictor.predict(test_data, x);
+		predictor.predict(responses, test_data, x, lambda_index);
 
 		//next lambda
 		++lambda_index;
@@ -248,7 +259,7 @@ inline boost::tuple<
 	}
 
 	return boost::make_tuple(
-		response_field,
+		responses,
 		number_of_features,
 		number_of_parameters);
 }

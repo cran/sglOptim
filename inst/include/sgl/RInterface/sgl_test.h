@@ -65,36 +65,18 @@ SEXP FUN_NAME(sgl_test, MODULE_NAME)(
 }
 
 SEXP R_FUN_NAME(sgl_test, MODULE_NAME)(
-		SEXP r_data,
-    SEXP r_block_dim,
-		SEXP r_blockWeights,
-		SEXP r_parameterWeights,
-		SEXP r_config) {
+	SEXP r_data,
+  SEXP r_block_dim,
+	SEXP r_blockWeights,
+	SEXP r_parameterWeights,
+	SEXP r_config) {
 
-	try {
-
+	SGL_TRY {
 		return FUN_NAME(sgl_test, MODULE_NAME)(
 			r_data,
       r_block_dim,
 			r_blockWeights,
       r_parameterWeights,
 			r_config);
-
-		//Catch unhandled exceptions
-
-	} catch (std::exception & e) {
-
-		if(e.what() != NULL) {
-			SGL_ERROR(e.what());
-		}
-
-		else {
-			SGL_ERROR("Unknown error");
-		}
-
-	} catch (...) {
-		SGL_ERROR("Unknown error");
-	}
-
-	return R_NilValue; //Avoid compiler warnings
+	} SGL_CATCH_ERROR
 }

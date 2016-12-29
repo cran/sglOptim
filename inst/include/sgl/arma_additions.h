@@ -19,34 +19,6 @@
 #ifndef ARMA_ADDITIONS_H_
 #define ARMA_ADDITIONS_H_
 
-arma::vec rowMeans(arma::sp_mat const& a) {
-
-  arma::vec r(a.n_rows);
-  r.zeros();
-
-  for(arma::u32 i = 0; i < a.n_cols; ++i) {
-      for(arma::u32 j = a.col_ptrs[i]; j < a.col_ptrs[i+1]; ++j) {
-          r(a.row_indices[j]) += a.values[j];
-      }
-  }
-
-  return r*(1/static_cast<double>(a.n_cols));
-}
-
-arma::mat exp(arma::sp_mat const& a) {
-
-  arma::mat r(a.n_rows, a.n_cols);
-  r.ones();
-
-  for(arma::u32 i = 0; i < a.n_cols; ++i) {
-      for(arma::u32 j = a.col_ptrs[i]; j < a.col_ptrs[i+1]; ++j) {
-          r(a.row_indices[j], i) = exp(a.values[j]);
-      }
-  }
-
-  return r;
-}
-
 bool is_cols_zero(arma::sp_mat const& a, arma::u32 col1, arma::u32 col2) {
 
 if(a.col_ptrs[col1] - a.col_ptrs[col2+1] == 0) {
@@ -54,95 +26,6 @@ if(a.col_ptrs[col1] - a.col_ptrs[col2+1] == 0) {
 }
 
 return false;
-}
-
-bool is_cols_zero(arma::sp_mat const& a, arma::u32 col) {
-
-if(a.col_ptrs[col] - a.col_ptrs[col+1] == 0) {
-    return true;
-}
-
-return false;
-}
-
-
-arma::uvec
-operator==(arma::sp_vec const& a, double const& b)
-{
-
-  arma::uvec r(a.n_elem);
-
-  if (b == 0)
-    {
-      r.ones();
-
-      for (arma::u32 i = 0; i < a.n_nonzero; ++i)
-        {
-          r(a.row_indices[i]) = 0;
-        }
-
-      return r;
-    }
-
-  r.zeros();
-
-  for (arma::u32 i = 0; i < a.n_nonzero; ++i)
-    {
-
-      if (a.values[i] == b)
-        {
-          r(a.row_indices[i]) = 1;
-        }
-    }
-
-  return r;
-
-}
-
-arma::uvec
-operator!=(arma::sp_vec const& a, double const& b)
-{
-
-  arma::uvec r(a.n_elem);
-
-  if (b == 0)
-    {
-      r.zeros();
-
-      for (arma::u32 i = 0; i < a.n_nonzero; ++i)
-        {
-          r(a.row_indices[i]) = 1;
-        }
-
-      return r;
-    }
-
-  r.ones();
-
-  for (arma::u32 i = 0; i < a.n_nonzero; ++i)
-    {
-
-      if (a.values[i] == b)
-        {
-          r(a.row_indices[i]) = 0;
-        }
-    }
-
-  return r;
-
-}
-
-
-//Is finite
-
-bool is_finite(arma::sp_mat const& x) {
-
-  for(arma::u32 i = 0; i < x.n_nonzero; ++i) {
-      if(boost::math::isnan(x.values[i]) || boost::math::isinf(x.values[i])) {
-          return false;
-      }
-  }
-       return true;
 }
 
 namespace arma {
@@ -209,22 +92,5 @@ template<class E, class F>
       }
 
   }
-
-//TODO remove
-// template<typename R, typename T>
-//   arma::field<R>
-//   conv(arma::field<T> const& source)
-//   {
-//
-//     arma::field<R> target(source.n_elem);
-//
-//     for (arma::u32 i = 0; i < source.n_elem; ++i)
-//       {
-//         target(i) = source(i);
-//       }
-//
-//     return target;
-//   }
-
 
 #endif /* ARMA_ADDITIONS_H_ */

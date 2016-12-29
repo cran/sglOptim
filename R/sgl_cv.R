@@ -25,22 +25,32 @@
 #' @param module_name reference to objective specific C++ routines.
 #' @param PACKAGE name of the calling package.
 #' @param data a list of data objects -- will be parsed to the specified module.
-#' @param parameterGrouping grouping of parameters, a vector of length \eqn{p}. Each element of the vector specifying the group of the parameters in the corresponding column of \eqn{\beta}.
+#' @param parameterGrouping grouping of parameters, a vector of length \eqn{p}.
+#' Each element of the vector specifying the group of the parameters in the corresponding column of \eqn{\beta}.
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}.
 #' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
-#' @param lambda the lambda sequence for the regularization path.
-#' @param fold the fold of the cross validation, an integer larger than \eqn{1} and less than \eqn{N+1}. Ignored if \code{cv.indices != NULL}.
+#' @param lambda lambda.min relative to lambda.max (if \code{compute_lambda = TRUE}) or the lambda sequence for the regularization path,
+#' a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.
+#' @param d length of lambda sequence (ignored if \code{compute_lambda = FALSE})
+#' @param compute_lambda should the lambda sequence be computed
+#' @param fold the fold of the cross validation, an integer larger than \eqn{1} and less than \eqn{N+1}.
+#' Ignored if \code{cv.indices != NULL}.
 #' If \code{fold}\eqn{\le}\code{max(table(classes))} then the data will be split into \code{fold} disjoint subsets keeping the ration of classes approximately equal.
 #' Otherwise the data will be split into \code{fold} disjoint subsets without keeping the ration fixed.
+#' @param sampleGroups grouping of samples,
+#' the algorithm computing the cv.indices will try to equally divide the groups among the subsamples.
 #' @param cv.indices a list of indices of a cross validation splitting.
 #' If \code{cv.indices = NULL} then a random splitting will be generated using the \code{fold} argument.
+#' @param responses a vector of responses to simplify and return (if NULL (deafult) no formating will be done)
 #' @param max.threads Deprecated (will be removed in 2018),
 #' instead use \code{use_parallel = TRUE} and registre parallel backend (see package 'doParallel').
 #' The maximal number of threads to be used.
-#' @param use_parallel If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}. The user must registre the parallel backend.
+#' @param use_parallel If \code{TRUE} the \code{foreach} loop will use \code{\%dopar\%}.
+#' The user must registre the parallel backend.
 #' @param algorithm.config the algorithm configuration to be used.
 #' @return
+#' \item{Y.true}{the response, that is the \code{y} object in data as created by \code{create.sgldata}.}
 #' \item{responses}{content will depend on the C++ response class}
 #' \item{cv.indices}{the cross validation splitting used}
 #' \item{features}{number of features used in the models}
@@ -51,13 +61,17 @@
 #' @export
 sgl_cv <- function(module_name, PACKAGE,
 	data,
-	parameterGrouping,
-	groupWeights,
-	parameterWeights,
+	parameterGrouping = NULL,
+	groupWeights = NULL,
+	parameterWeights = NULL,
 	alpha,
 	lambda,
+	d = 100,
+	compute_lambda = length(lambda) == 1,
 	fold = 2,
+	sampleGroups = NULL,
 	cv.indices = list(),
+	responses = NULL,
 	max.threads = NULL,
 	use_parallel = FALSE,
 	algorithm.config = sgl.standard.config) {
@@ -72,33 +86,34 @@ sgl_cv <- function(module_name, PACKAGE,
 			stop("fold must be equal to or larger than 2")
 		}
 
-		if(fold > length(data$G)) {
+		if(fold > data$n_samples) {
 			stop("fold must be equal to or less than the number of samples")
 		}
 
-		if(fold > min(table(data$G)) || length(unique(data$G)) == 1) {
-			# use random sample indices
-			use.cv.indices <- TRUE
-			cv.indices <- split(sample(1:(length(data$G))), 1:fold)
-			# TODO need to ensure that each split has one sample from each class
+		if( is.null(sampleGroups)  || fold > min(table(sampleGroups)) ) {
+
+			cv.indices <- sample(1:data$n_samples)
+			cv.indices <- lapply(1:fold, function(i) cv.indices[(1:data$n_samples %% fold) == (i-1)])
 
 		} else {
+
 			# compute cv indices
-			cv.indices <- lapply(unique(data$G), function(x) .divide_indices(which(data$G == x), fold))
+			cv.indices <- lapply(unique(sampleGroups), function(x) .divide_indices(which(sampleGroups == x), fold))
 			cv.indices <- lapply(cv.indices, function(x) sample(x))
 			cv.indices <- lapply(1:fold, function(i) sort(unlist(lapply(cv.indices, function(x) x[[i]]))))
+
 		}
 
 		# Chek consistency of cv.indices
-		if(length(unlist(cv.indices)) != length(data$G) || sum(duplicated(unlist(cv.indices))) > 0) {
+		if(length(unlist(cv.indices)) != data$n_samples || sum(duplicated(unlist(cv.indices))) > 0) {
 			stop("Internal error computing the cross validation splitting (this is a bug)")
 		}
 
 	} else {
 		# use user supplied cv splitting
 		# Chek consistency of cv.indices
-		if(length(unlist(cv.indices)) != length(data$G) || sum(duplicated(unlist(cv.indices))) > 0) {
-			stop("User supplied cv.indices are invalid \n    (the cv.indices does not represent a cross validation splitting, use subsampling for general subsampling)")
+		if(length(cv.indices) == 1 || length(unlist(cv.indices)) != data$n_samples || sum(duplicated(unlist(cv.indices))) > 0) {
+			stop("User supplied cv.indices are invalid \n (the cv.indices does not represent a cross validation splitting, use subsampling for general subsampling)")
 		}
 	}
 
@@ -114,8 +129,11 @@ sgl_cv <- function(module_name, PACKAGE,
 		parameterWeights = parameterWeights,
 		alpha = alpha,
 		lambda = lambda,
+		d = d,
+		compute_lambda = compute_lambda,
 		training = training,
 		test = test,
+		responses = responses,
 		collapse = TRUE,
 		max.threads = max.threads,
 		use_parallel = use_parallel,
@@ -125,6 +143,8 @@ sgl_cv <- function(module_name, PACKAGE,
 	res$cv.indices <- cv.indices
 
 	# Set version, type and class and return
+	res$module_name <- module_name
+	res$PACKAGE <- PACKAGE
 	res$sglOptim_version <- packageVersion("sglOptim")
 	res$type <- "cv"
 	class(res) <- "sgl"

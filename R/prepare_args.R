@@ -48,12 +48,12 @@ rearrange <- function(data, covariate.order, ...) UseMethod("rearrange")
 #' @param data a data object
 #' @param ... additional parameters
 #' @return
-#' \item{block.dim}{a vector of length \eqn{m}, containing the dimensions \eqn{d_J} of the groups (i.e. the number of parameters in the groups)}
+#' \item{block_dim}{a vector of length \eqn{m}, containing the dimensions \eqn{d_J} of the groups (i.e. the number of parameters in the groups)}
 #' \item{groupWeights}{a vector of length \eqn{m}, containing the group weights}
 #' \item{parameterWeights}{a matrix of dimension \eqn{q \times p}, containing the parameter weights}
 #' \item{alpha}{the \eqn{\alpha} value}
 #' \item{data}{the data parsed to the loss module}
-#' \item{group.order}{original order of the columns of \eqn{\beta}. Before sgl routines return \eqn{\beta} will be reorganized according to this order.}
+#' \item{group_order}{original order of the columns of \eqn{\beta}. Before sgl routines return \eqn{\beta} will be reorganized according to this order.}
 #'
 #' @seealso prepare.args.sgldata
 #' @author Martin Vincent
@@ -74,6 +74,20 @@ prepare.args <- function(data, ...) UseMethod("prepare.args")
 #' @export
 subsample <- function(data, indices, ...) UseMethod("subsample")
 
+
+#' @title Add data to a sgldata data object
+#'
+#' @description
+#' Addes a data to a sgldata data object
+#'
+#' @param data sgldata object
+#' @param x data object to add,
+#' @param name name of data object
+#' @param ... additional parameters
+#' @author Martin Vincent
+#' @export
+add_data <- function(data, x, name, ...) UseMethod("add_data")
+
 #' @title Rearrange sgldata
 #'
 #' @description
@@ -90,7 +104,7 @@ subsample <- function(data, indices, ...) UseMethod("subsample")
 rearrange.sgldata <- function(data, covariate.order, ...)
 {
 
-	data$X <- data$X[,covariate.order, drop = FALSE]
+	data$data$X <- data$data$X[,covariate.order, drop = FALSE]
 	data$covariate.names <- data$covariate.names[covariate.order]
 
 	return(data)
@@ -106,37 +120,111 @@ rearrange.sgldata <- function(data, covariate.order, ...)
 #' @param ... not used
 #' @return a sgldata
 #' @author Martin Vincent
+#' @importFrom methods is
 #' @method subsample sgldata
 #' @export
 #' @family sgldata
 subsample.sgldata <- function(data, indices, ...)  {
 
-	data$X <- data$X[indices, ]
+	data$sample_names <- data$sample_names[indices]
 
-	if( is.null(data$Y) ) {
-		# do nothing
-	} else if( is.vector(data$Y) ) {
-		data$Y <- data$Y[indices]
-	} else if( is.matrix(data$Y) ) {
-		data$Y <- data$Y[indices, , drop = FALSE]
+	data$data <- lapply(data$data, function(x) {
+
+		if( is.null(x) ) {
+
+			# do nothing
+
+		} else if( is.vector(x) ) {
+
+			return( x[indices] )
+
+		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
+
+			return( x[indices, , drop = FALSE] )
+
 	} else {
-		stop("y is of unknown type")
-	}
 
-	data$sample.names <- data$sample.names[indices]
+			stop(paste("Can not handle data of type:", class(x)))
 
-	if( is.vector(data$W) ) {
-		data$W <- data$W[indices]
-	} else if( is.matrix(data$W) ) {
-		data$W <- data$W[indices,]
-	} else {
-		stop("weights is of unknown type")
-	}
-
-	data$G <- data$G[indices]
+		}
+	})
 
 	return(data)
 }
+
+#' @title Prepare a sgldata data object
+#'
+#' @description
+#' Creates a sgldata data object from a matrix or vector
+#'
+#' @param x the matrix,
+#' @param default default value, returned if x is null
+#' @param type data type, 'numeric' or 'integer'
+#' @param sparse if TRUE \code{y} will be treated as sparse, if FALSE \code{y} will be treated as dens.
+#' @author Martin Vincent
+#' @importFrom methods is
+#' @importFrom methods as
+#' @export
+#' @family sgldata
+prepare_data <- function(
+	x,
+	default = NULL,
+	type = "numeric",
+	sparse = is(x, "sparseMatrix")) {
+
+	if( is.null(x) ) {
+		return( default )
+	}
+
+	if( ! is.null(x) && any(is.na(x))) {
+		stop(paste("data matrix contains NA values"))
+	}
+
+	if( type == "numeric" ) {
+
+		if(sparse && (is.matrix(x) || is(x, "sparseMatrix")) ) {
+
+			return( as(x, "CsparseMatrix") )
+
+		}	else if( is.vector(x) ) {
+
+			return( as.numeric(x) )
+
+		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
+
+			x <- as.matrix(x)
+			return( apply(x, c(1,2), as.numeric) )
+
+		} else {
+			stop(paste("data matrix is of unknown type: ", class(x)))
+		}
+	}
+
+	if( type == "integer" ) {
+
+		if(sparse && (is.matrix(x) || is(x, "sparseMatrix")) ) {
+
+			return( as(x, "CsparseMatrix") )
+
+		}	else if( is.vector(x) ) {
+
+			return( as.integer(x) )
+
+		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
+
+			return( apply(x, c(1,2), as.integer) )
+
+		} else {
+			stop(paste("data matrix is of unknown type: ", class(x)))
+		}
+	}
+
+	if(type == "factor") {
+		return( as.integer(x) - 1L )
+	}
+
+	stop(paste("can not handle type '",type,"'",sep=""))
+	}
 
 #' @title Create a sgldata object
 #'
@@ -144,96 +232,154 @@ subsample.sgldata <- function(data, indices, ...)  {
 #' Creates a sgldata object from a design matrix and an optional response vector or matrix.
 #'
 #' @param x the design matrix, a matrix of size \eqn{N \times p} (will be parsed to the loss module as \code{X}).
-#' @param y the responses, \code{NULL}, a vector or a matrix (will be parsed to the loss module as \code{Y})..
-#' @param weights sample weights, a vector of length \eqn{N} (will be parsed to the loss module as \code{W}).
-#' @param sampleGrouping grouping of samples, a factor of length \eqn{N} (will be parsed to the loss module as \code{G}). Default is no grouping (NULL), that is all samples is the same group.
-#' @param group.names a vector with the names of the parameter groups (the length must equal the number of rows in the \eqn{\beta} matrix).
+#' @param y the responses, \code{NULL}, a vector or a matrix (will be parsed to the loss module as matrix \code{Y})..
+#' @param response_dimension number of models, that is the dimension of the returned response.
+#' @param response_names names of models, that is the names of the elements of the returned response.
 #' @param sparseX if TRUE \code{x} will be treated as sparse, if FALSE \code{x} will be treated as dens.
 #' @param sparseY if TRUE \code{y} will be treated as sparse, if FALSE \code{y} will be treated as dens.
+#' @param typeX type of the elements of x.
+#' @param typeY type of the elements of y.
 #' @author Martin Vincent
 #' @importFrom methods is
 #' @importFrom methods as
 #' @export
 #' @family sgldata
-create.sgldata <- function(x, y, weights = NULL, sampleGrouping = NULL, group.names = NULL, sparseX = is(x, "sparseMatrix"), sparseY = is(y, "sparseMatrix")) {
+create.sgldata <- function(x, y,
+	response_dimension = .get_response_dimension(y),
+	response_names = .get_response_names(y),
+	sparseX = is(x, "sparseMatrix"),
+	sparseY = is(y, "sparseMatrix"),
+	typeX = element_class(x),
+	typeY = element_class(y)) {
 
-	### Check for NA values
+	### domain checks
 	if(any(is.na(x))) stop("design matrix contains NA values")
 	if( ! is.null(y) && any(is.na(y))) stop("response contains NA values")
-	if( ! is.null(weights) && any(is.na(weights))) stop("weights contains NA values")
-    if( ! is.null(sampleGrouping) && any(is.na(sampleGrouping))) stop("sample grouping (classes) contains NA values")
 
 	### Create data object
 	data <- list()
 
 	### Dimensions
-	data$n.covariate <- ncol(x)
-	data$n.samples <- nrow(x)
+	data$n_covariate <- ncol(x)
+	data$n_samples <- nrow(x)
 
-	if(data$n.samples < 2) {
+	### Dim names
+	data$sample_names <- rownames(x)
+	data$covariate_names <- colnames(x)
+	data$response_names <- response_names
+
+	if(data$n_samples < 2) {
 		stop("design matrix contains less than 2 samples")
 	}
 
-	### X data
-	data$sparseX <- sparseX
-
-	if(data$sparseX) {
-		data$X <- as(x, "CsparseMatrix")
-	} else if(is(x, "matrix") || is(x, "sparseMatrix")){
-		data$X <- as.matrix(x)
-	} else {
-		stop("design matrix of unkown type")
-	}
-
-	# Dim-names
-	data$sample.names <- rownames(x)
-	data$covariate.names <- colnames(x)
-
-	### Y data
-	data$sparseY <- sparseY
-
-	if(is.null(y)) {
-		data$Y <- NULL
-	} else if(is.vector(y)) {
-		data$Y <- as.numeric(y)
-	} else if( is.matrix(y) ) {
-		data$Y <- apply(y, 2, as.numeric)
-	} else if(sparseY) {
-		data$Y <- as(y, "CsparseMatrix")
-	} else {
-		stop("y is of unknown type")
-	}
-
-	### weights
-	if(is.null(weights)) {
-		data$W <- rep(1/data$n.samples, data$n.samples)
-	} else if(is.vector(weights)) {
-		data$W <- as.numeric(weights)
-	} else if(is.matrix(weights)) {
-		data$W <- apply(weights, 2, as.numeric)
-	} else {
-		stop("weights is of unknown type")
-	}
-
-	### sample grouping
-	if(is.null(sampleGrouping)) {
-		sampleGrouping <- rep(1, data$n.samples)
-	}
-
-	sampleGrouping <- factor(sampleGrouping)
-	data$G <- as.integer(factor(sampleGrouping))-1L
-
-	### group names
-	if(is.null(group.names)) {
-		data$group.names <- levels(sampleGrouping)
-	} else {
-		data$group.names <- group.names
-	}
-
-	data$n.groups <- as.integer(length(data$group.names))
+	data$response_dimension <- response_dimension
 
 	class(data) <- "sgldata"
-	return(data)
+
+	### X data
+	data <- add_data(data, x, "X", type = typeX, sparse = sparseX)
+
+	### Y data
+	if( is.vector(y) ) {
+		y <- matrix(y, nrow = length(y), ncol = 1)
+	}
+
+	data <- add_data(data, y, "Y", type = typeY, sparse = sparseY)
+
+	return( data )
+}
+
+.get_response_dimension <- function(x) {
+
+	if( is.matrix(x) || is(x, "sparseMatrix") ) {
+		return(ncol(x))
+	}
+
+	if( is.vector(x) ) {
+		return(1)
+	}
+
+	if( is.factor(x) ) {
+		return (length(levels(x)))
+	}
+
+	if( is.null(x) ) {
+		return( NULL )
+	}
+
+	stop(paste("Unknown response type:", class(x)))
+}
+
+.get_response_names <- function(x) {
+
+	if( is.matrix(x) || is(x, "sparseMatrix") ) {
+		return(colnames(x))
+	}
+
+	if( is.vector(x) ) {
+		return("response")
+	}
+
+	if( is.factor(x) ) {
+		return (levels(x))
+	}
+
+	if( is.null(x) ) {
+		return( NULL )
+	}
+
+
+	stop(paste("Unknown response type:", class(x)))
+}
+
+#' @title Add data to a sgldata data object
+#'
+#' @description
+#' Addes a data to a sgldata data object
+#'
+#' @param data sgldata object
+#' @param x matrix or vector,
+#' @param name name of the data object
+#' @param default default value, returned if x is null
+#' @param type data type, 'numeric' or 'integer'
+#' @param sparse if TRUE \code{y} will be treated as sparse, if FALSE \code{y} will be treated as dens.
+#' @param ... not used
+#' @author Martin Vincent
+#' @export
+#' @family sgldata
+add_data.sgldata <- function( data,
+	x,
+	name,
+	default = NULL,
+	type = element_class(x),
+	sparse = is(x, "sparseMatrix"), ... ) {
+
+	if( is.null(data$data) ) {
+		data$data <- list()
+	}
+
+	sparse_name <- paste("sparse", name, sep="")
+	data[[sparse_name]] <- sparse
+
+	data$data[[name]] <- prepare_data(x,
+		default = default,
+		type = type,
+		sparse = sparse)
+
+	# check dimension
+	if( ! is.null(data$data[[name]]) ) {
+		if( is.vector(data$data[[name]]) ) {
+			ns <- length(x)
+		} else {
+			ns <- nrow(data$data[[name]])
+		}
+
+		if(ns != data$n_samples) {
+			stop("data dimension inconsistent")
+		}
+	}
+
+	return( data )
 }
 
 #' @title Prepare sgl function arguments
@@ -245,6 +391,7 @@ create.sgldata <- function(x, y, weights = NULL, sampleGrouping = NULL, group.na
 #' @param parameterGrouping grouping of parameters, a vector of length \eqn{p}. Each element of the vector specifying the group of the parameters in the corresponding column of \eqn{\beta}.
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}, that is the same dimension as \eqn{\beta}.
+#' @param parameterNames dim-names of parameters, if NULL \code{dimnames(parameterWeights)} will be used.
 #' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
 #' @param test_data optional test data to be prepared (a sgldata object)
 #' @param ... not used
@@ -252,66 +399,137 @@ create.sgldata <- function(x, y, weights = NULL, sampleGrouping = NULL, group.na
 #' @export
 #' @family sgldata
 #' @author Martin Vincent
-prepare.args.sgldata <- function(data, parameterGrouping, groupWeights, parameterWeights, alpha, test_data = NULL, ...) {
+prepare.args.sgldata <- function(
+	data,
+	parameterGrouping = NULL,
+	groupWeights = NULL,
+	parameterWeights = NULL,
+	parameterNames = NULL,
+	alpha,
+	test_data = NULL, ...) {
 
 	# If Lasso then ignore grouping
 	if(alpha == 1) {
-		parameterGrouping <- factor(1:data$n.covariate)
-		groupWeights <- rep(1, data$n.covariate)
+		parameterGrouping <- NULL
+		groupWeights <- NULL
+	}
+
+	# Set deafult values if NULL
+	if( is.null(parameterGrouping) ) {
+		parameterGrouping <- 1:data$n_covariate
+	}
+
+	# ensure parameterGrouping is factor
+	parameterGrouping <- factor(parameterGrouping)
+
+	if( is.null(groupWeights) ) {
+		groupWeights <- rep(1, length(levels(parameterGrouping)))
+	}
+
+	if( is.null(parameterWeights) ) {
+		parameterWeights <- matrix(1, nrow = data$response_dimension, ncol = data$n_covariate)
+
+		dimnames(parameterWeights) <- list(data$response_names, data$covariate_names)
 	}
 
 	### Compute block dim
-	block.dim <- data$n.groups*as.integer(table(parameterGrouping))
+	block_dim <-nrow(parameterWeights)*as.integer(table(parameterGrouping))
 
 	### Prepare data
 
 	# Reorder data
-	group.order <- order(parameterGrouping)
-	data <- rearrange(data, group.order)
-	parameterWeights <- parameterWeights[,group.order, drop = FALSE]
+	group_order <- order(parameterGrouping)
+	data <- rearrange(data, group_order)
+	parameterWeights <- parameterWeights[,group_order, drop = FALSE]
 
-	# sparse X format
-	if(data$sparseX) {
-		data$X <- list(dim(data$X), data$X@p, data$X@i, data$X@x)
-	}
-
-	# sparse Y format
-	if(data$sparseY) {
-		data$Y <- list(dim(data$Y), data$Y@p, data$Y@i, data$Y@x)
+	# Paramter names
+	if( is.null(parameterNames) ) {
+		parameterNames <- dimnames(parameterWeights)
 	}
 
 	### Create args list
 
 	args <- list()
 
-	args$block.dim <- block.dim
+	args$block_dim <- block_dim
 	args$groupWeights <- groupWeights
 	args$parameterWeights <- parameterWeights
+	args$parameterNames <- parameterNames
 	args$alpha <- alpha
-	args$data <- data
-	args$group.order <- group.order
+	args$data <- .format_data_list(data$data)
+	args$group_order <- group_order
 
 	### Prepare test data
 
-	# TODO check data and test_data consistency
+	#NOTE check data and test_data consistency
 
 	if( ! is.null(test_data) ) {
 
 		# Reorder data
-		test_data <- rearrange(test_data, group.order)
+		test_data <- rearrange(test_data, group_order)
 
-		# sparse X format
-		if(test_data$sparseX) {
-			test_data$X <- list(dim(test_data$X), test_data$X@p, test_data$X@i, test_data$X@x)
-		}
-
-		# sparse Y format
-		if(test_data$sparseY) {
-			test_data$Y <- list(dim(test_data$Y), test_data$Y@p, test_data$Y@i, test_data$Y@x)
-		}
-
-		args$test_data <- test_data
+		args$test_data <- .format_data_list(test_data$data)
 	}
 
 	return(args)
+}
+
+#' @title Prepare sparse matrix for .Call
+#'
+#' @description
+#' Prepare sparse matrix for .Call
+#'
+#' @param x a spares matrix
+#' @author Martin Vincent
+#' @export
+sparseMatrix_to_C_format <- function(x) {
+	x <- as(x, "CsparseMatrix")
+	return( list(dim(x), x@p, x@i, x@x) )
+}
+
+#' @title Convert to sparse matrix
+#'
+#' @description
+#' Convert sparse matrix  retunred from .Call to sparseMatrix.
+#'
+#' @param x .Call retunred list
+#' @author Martin Vincent
+#' @export
+sparseMatrix_from_C_format <- function(x) {
+	sparseMatrix(p = x[[2]], i = x[[3]], x = x[[4]], dims = x[[1]], index1 = FALSE)
+}
+
+.format_data_list <- function(data) lapply(data, function(x) {
+	if( is(x, "sparseMatrix") ) {
+		return( sparseMatrix_to_C_format(x) )
+	}
+
+	return(x)
+})
+
+#' @title Retur the element class of an object.
+#'
+#' @description
+#' Return the element class of an object.
+#' The object must be a matrix, vector or NULL.
+#' The element class of NULL is NULL
+#'
+#' @param x a matrix, vector or NULL
+#' @author Martin Vincent
+#' @export
+element_class <- function(x) {
+
+	if( is.null(x) ) {
+		return( NULL )
+	} else if( is.matrix(x) ) {
+		return( class(x[1,1]) )
+	} else if( is(x, "sparseMatrix") ) {
+		return( class(x[1,1]) )
+	} else if ( is.vector(x) ) {
+		return( class(x) )
+	} else if ( is.factor(x) ) {
+		return( class(x) )
+	} else {
+		stop(paste("can not handle object of class", class(x)))
+	}
 }

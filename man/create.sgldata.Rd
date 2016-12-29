@@ -4,24 +4,27 @@
 \alias{create.sgldata}
 \title{Create a sgldata object}
 \usage{
-create.sgldata(x, y, weights = NULL, sampleGrouping = NULL,
-  group.names = NULL, sparseX = is(x, "sparseMatrix"), sparseY = is(y,
-  "sparseMatrix"))
+create.sgldata(x, y, response_dimension = .get_response_dimension(y),
+  response_names = .get_response_names(y), sparseX = is(x, "sparseMatrix"),
+  sparseY = is(y, "sparseMatrix"), typeX = element_class(x),
+  typeY = element_class(y))
 }
 \arguments{
 \item{x}{the design matrix, a matrix of size \eqn{N \times p} (will be parsed to the loss module as \code{X}).}
 
-\item{y}{the responses, \code{NULL}, a vector or a matrix (will be parsed to the loss module as \code{Y})..}
+\item{y}{the responses, \code{NULL}, a vector or a matrix (will be parsed to the loss module as matrix \code{Y})..}
 
-\item{weights}{sample weights, a vector of length \eqn{N} (will be parsed to the loss module as \code{W}).}
+\item{response_dimension}{number of models, that is the dimension of the returned response.}
 
-\item{sampleGrouping}{grouping of samples, a factor of length \eqn{N} (will be parsed to the loss module as \code{G}). Default is no grouping (NULL), that is all samples is the same group.}
-
-\item{group.names}{a vector with the names of the parameter groups (the length must equal the number of rows in the \eqn{\beta} matrix).}
+\item{response_names}{names of models, that is the names of the elements of the returned response.}
 
 \item{sparseX}{if TRUE \code{x} will be treated as sparse, if FALSE \code{x} will be treated as dens.}
 
 \item{sparseY}{if TRUE \code{y} will be treated as sparse, if FALSE \code{y} will be treated as dens.}
+
+\item{typeX}{type of the elements of x.}
+
+\item{typeY}{type of the elements of y.}
 }
 \description{
 Creates a sgldata object from a design matrix and an optional response vector or matrix.
@@ -30,8 +33,9 @@ Creates a sgldata object from a design matrix and an optional response vector or
 Martin Vincent
 }
 \seealso{
-Other sgldata: \code{\link{prepare.args.sgldata}},
-  \code{\link{prepare.args}},
+Other sgldata: \code{\link{add_data.sgldata}},
+  \code{\link{prepare.args.sgldata}},
+  \code{\link{prepare.args}}, \code{\link{prepare_data}},
   \code{\link{rearrange.sgldata}},
   \code{\link{subsample.sgldata}}
 }

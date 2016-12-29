@@ -83,8 +83,8 @@ inline sgl::matrix const GenralizedLinearLossDense < T >::hessian_diag(
 
 	T::compute_hessians();
 
-	hessian_diag_mat(block_index).zeros(dim_config.block_dim(block_index),
-			dim_config.block_dim(block_index));
+	hessian_diag_mat(block_index).zeros(
+			dim_config.block_dim(block_index), dim_config.block_dim(block_index));
 
 	sgl::natural n_cols = (dim_config.block_end_index(block_index) - dim_config.block_start_index(block_index)) / n_feature_parameters + 1;
 	sgl::natural X_col_offset = dim_config.block_start_index(block_index) / n_feature_parameters;
@@ -123,20 +123,19 @@ inline sgl::matrix const GenralizedLinearLossDense < T >::hessian_diag(
 }
 
 template < typename T >
-void GenralizedLinearLossDense < T >::hessian_update(sgl::natural block_index,
-		sgl::parameter_block_vector const& z)
-		{
+void GenralizedLinearLossDense < T >::hessian_update(
+		sgl::natural block_index, sgl::parameter_block_vector const& z) {
 
-	TIMER_START;
+	TIMER_START
 	DEBUG_ENTER
 
 	//Update
 	T::compute_hessians();
 
-	sgl::matrix tmp2(z - current_parameters.block(block_index));
-	tmp2.reshape(n_feature_parameters, dim_config.block_dim(block_index) / n_feature_parameters);
-
 	if(hessian_type::is_constant) {
+
+		sgl::matrix tmp2(z - current_parameters.block(block_index));
+		tmp2.reshape(n_feature_parameters, dim_config.block_dim(block_index) / n_feature_parameters);
 
 		partial_hessian += hessian_type::update(
 			T::hessians(0),
@@ -148,12 +147,17 @@ void GenralizedLinearLossDense < T >::hessian_update(sgl::natural block_index,
 
 	else {
 
-		sgl::matrix tmp1(tmp2*trans(X.cols(dim_config.block_start_index(block_index) / n_feature_parameters,
-				dim_config.block_end_index(block_index) / n_feature_parameters)));
+
+		sgl::matrix tmp1(
+			reshape(z - current_parameters.block(block_index),
+					n_feature_parameters,
+					dim_config.block_dim(block_index) / n_feature_parameters)
+			* trans(X.cols(
+					dim_config.block_start_index(block_index) / n_feature_parameters,
+					dim_config.block_end_index(block_index) / n_feature_parameters)));
 
 		for (sgl::natural i = 0; i < n_samples; ++i)
 		{
-
 			partial_hessian.col(i) += hessian_type::update(T::hessians(i), tmp1.col(i), 1.0);
 			//partial_hessian.col(i) += T::hessians(i) * tmp1.col(i);
 		}

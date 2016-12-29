@@ -19,50 +19,34 @@
 #ifndef LINEAR_RESPONSE_H_
 #define LINEAR_RESPONSE_H_
 
-class LP {}; //linear predictors
+class LinearResponse : public elements < LinearResponse > {
 
-class LinearResponse {
+private:
+  vector const linear_predictors;
 
 public:
 
-	sgl::natural const n_groups;
-	sgl::vector const linear_predictors;
+  LinearResponse(vector const& linear_predictors) :
+    linear_predictors(linear_predictors) {}
 
+  //Needed so that we can use fields
+  LinearResponse() :
+    linear_predictors(null_vector) {}
 
-	LinearResponse(sgl::vector const& linear_predictors)
-			: n_groups(linear_predictors.n_elem),
-			  linear_predictors(linear_predictors)
-	{
+  LinearResponse const& operator=(LinearResponse const& s) {
+
+    const_cast< vector & >(this->linear_predictors) = s.linear_predictors;
+
+    return * this;
 	}
 
-	//Needed so that we can use fields
-	LinearResponse()
-			: n_groups(0),
-			  linear_predictors(static_cast<sgl::natural>(0))
-	{
-	}
+  rList as_rList() const {
 
-	LinearResponse const& operator=(LinearResponse const& s)
-	{
-		const_cast<sgl::natural&>(this->n_groups) = s.n_groups;
-		const_cast<sgl::vector&>(this->linear_predictors) = s.linear_predictors;
+    rList list;
+    list.attach(linear_predictors, "link");
 
-		return *this;
-	}
-
-    sgl::vector const& get(LP) const {
-        return linear_predictors;
-    }
-
-    template<typename T>
-    static rList simplify(T const& responses) {
-
-        rList list;
-
-        list.attach(simplifier<sgl::vector, LP>::simplify(responses), "link");
-
-        return list;
-     }
+    return list;
+  }
 
 };
 

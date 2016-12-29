@@ -19,9 +19,10 @@
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 
-#' Fit a sparse group lasso regularization path.
+#' @title Fit a Sparse Group Lasso Regularization Path.
 #'
-#' A sequence of minimizers (one for each lambda given in the \code{lambda} argument) of
+#' @description
+#' Computes a sequence of minimizers (one for each lambda given in the \code{lambda} argument) of
 #' \deqn{\mathrm{loss}(\beta) + \lambda \left( (1-\alpha) \sum_{J=1}^m \gamma_J \|\beta^{(J)}\|_2 + \alpha \sum_{i=1}^{n} \xi_i |\beta_i| \right)}
 #' where \eqn{\mathrm{loss}} is the loss/objective function specified by \code{module_name}.
 #' The parameters are organized in the parameter matrix \eqn{\beta} with dimension \eqn{q\times p}.
@@ -36,10 +37,13 @@
 #' @param groupWeights the group weights, a vector of length \code{length(unique(parameterGrouping))} (the number of groups).
 #' @param parameterWeights a matrix of size \eqn{q \times p}.
 #' @param alpha the \eqn{\alpha} value 0 for group lasso, 1 for lasso, between 0 and 1 gives a sparse group lasso penalty.
-#' @param lambda the lambda sequence for the regularization path.
-#' @param return the indices of lambda values for which to return fitted parameters.
+#' @param lambda lambda.min relative to lambda.max (if \code{compute_lambda = TRUE}) or the lambda sequence for the regularization path, a vector or a list of vectors (of the same length) with the lambda sequence for the subsamples.
+#' @param d length of lambda sequence (ignored if \code{compute_lambda = FALSE})
+#' @param compute_lambda should the lambda sequence be computed
+#' @param return_indices the indices of lambda values for which to return fitted parameters.
 #' @param algorithm.config the algorithm configuration to be used.
 #' @return
+#' \item{Y.true}{the response, that is the \code{y} object in data as created by \code{create.sgldata}.}
 #' \item{beta}{the fitted parameters -- a list of length \code{length(return)} with each entry a matrix of size \eqn{q\times (p+1)} holding the fitted parameters.}
 #' \item{loss}{the values of the loss function.}
 #' \item{objective}{the values of the objective function (i.e. loss + penalty).}
@@ -49,30 +53,94 @@
 #' @useDynLib sglOptim, .registration=TRUE
 #' @importFrom utils packageVersion
 #' @import Matrix
-sgl_fit <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, alpha, lambda, return = 1:length(lambda), algorithm.config = sgl.standard.config) {
+sgl_fit <- function(module_name, PACKAGE,
+	data,
+	parameterGrouping = NULL,
+	groupWeights = NULL,
+	parameterWeights = NULL,
+	alpha,
+	lambda,
+	d = 100,
+	compute_lambda = length(lambda) == 1,
+	return_indices = NULL,
+	algorithm.config = sgl.standard.config) {
 
-	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
+	# Compute lambda sequence
+	if( compute_lambda ) {
 
-	idx <- as.integer(sort(unique(return))) - 1L
+		if( length(lambda) != 1 || lambda > 1 || lambda < 0) {
+			stop("lambda must be a single number in the range (0,1) ")
+		}
+
+		if( length(d) != 1 || as.integer(d) != d || d < 1) {
+			stop("d must be a single integer larger than 1")
+		}
+
+		lambda <- sgl_lambda_sequence(
+			module_name = module_name,
+			PACKAGE = PACKAGE,
+			data = data,
+			parameterGrouping = parameterGrouping,
+			groupWeights = groupWeights,
+			parameterWeights = parameterWeights,
+			alpha = alpha,
+			d = d,
+			lambda.min = lambda,
+			algorithm.config = algorithm.config,
+			lambda.min.rel = TRUE
+		)
+
+	}
+
+	# Prapare arguments
+	args <- prepare.args(
+		data = data,
+		parameterGrouping = parameterGrouping,
+		groupWeights = groupWeights,
+		parameterWeights = parameterWeights,
+		alpha = alpha
+	)
+
+	if( is.null(return_indices) ) {
+		return_indices <- 1:length(lambda)
+	}
+
+	idx <- as.integer(sort(unique(return_indices))) - 1L
 	if( any(idx < 0) || any(idx >= length(lambda)) ) {
-		stop("return indvalid")
+		stop("return_indices indvalid")
 	}
 
 	call_sym <- paste(module_name, "sgl_fit", sep="_")
-	res <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, args$alpha, lambda, idx, algorithm.config)
+	res <- .Call(call_sym, PACKAGE = PACKAGE,
+		args$data,
+		args$block_dim,
+		args$groupWeights,
+		args$parameterWeights,
+		args$alpha,
+		lambda,
+		idx,
+		algorithm.config
+	)
+
+	# Add true response
+	res$Y.true <- data$data$Y
 
 	## Create R sparse matrix
-	res$beta <- lapply(1:length(res$beta), function(i) sparseMatrix(p = res$beta[[i]][[2]], i = res$beta[[i]][[3]], x = res$beta[[i]][[4]], dims = res$beta[[i]][[1]], index1 = FALSE))
+	res$beta <- lapply(1:length(res$beta), function(i) sparseMatrix_from_C_format(res$beta[[i]]))
 
 	# Dim names
-	res$beta <- lapply(res$beta, function(x) { dimnames(x) <- list(args$data$group.names, args$data$covariate.names); x })
+	if( ! is.null(args$parameterNames) ) {
+		res$beta <- lapply(res$beta, function(x) { dimnames(x) <- args$parameterNames; x })
+	}
 
 	# Restore org order
-	res$beta <- lapply(res$beta, function(x) x[, order(args$group.order), drop = FALSE])
+	res$beta <- lapply(res$beta, function(x) x[, order(args$group_order), drop = FALSE])
 
 	res$nmod <- length(res$beta)
 
 	# Set version, type and class and return
+	res$module_name <- module_name
+	res$PACKAGE <- PACKAGE
 	res$sglOptim_version <- packageVersion("sglOptim")
 	res$type <- "fit"
 	class(res) <- "sgl"

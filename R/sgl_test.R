@@ -37,14 +37,33 @@
 #' @useDynLib sglOptim, .registration=TRUE
 #' @importFrom utils packageVersion
 #' @import Matrix
-sgl_test <- function(module_name, PACKAGE, data, parameterGrouping, groupWeights, parameterWeights, algorithm.config = sgl.standard.config) {
+sgl_test <- function(
+  module_name,
+  PACKAGE,
+  data,
+  parameterGrouping,
+  groupWeights,
+  parameterWeights,
+  algorithm.config = sgl.standard.config) {
 
   alpha <- 1
 
-	args <- prepare.args(data, parameterGrouping, groupWeights, parameterWeights, alpha)
+	args <- prepare.args(
+    data = data,
+    parameterGrouping = parameterGrouping,
+    groupWeights = groupWeights,
+    parameterWeights = parameterWeights,
+    alpha =  alpha
+  )
 
 	call_sym <- paste(module_name, "sgl_test", sep="_")
-  problems <- .Call(call_sym, PACKAGE = PACKAGE, args$data, args$block.dim, args$groupWeights, args$parameterWeights, algorithm.config)
+  problems <- .Call(call_sym, PACKAGE = PACKAGE,
+    args$data,
+    args$block_dim,
+    args$groupWeights,
+    args$parameterWeights,
+    algorithm.config
+  )
 
   return(problems)
 

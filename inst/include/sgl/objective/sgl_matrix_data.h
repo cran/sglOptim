@@ -19,7 +19,7 @@
 #ifndef MSGL_MATRIX_DATA_H_
 #define MSGL_MATRIX_DATA_H_
 
-//TODO clean up
+//NOTE clean up
 
 template<typename T>
 const T getData(rList const& rdata, char const symbol) {
@@ -49,22 +49,6 @@ T submatrix(T const& matrix, sgl::natural_vector const& rows) {
     &error_type_not_defined = 0;
     }
 
-template<>
-arma::Mat<double> submatrix(arma::Mat<double> const& matrix, sgl::natural_vector const& rows) {
-    return matrix.rows(rows);
-}
-
-template<>
-arma::SpMat<double> submatrix(arma::SpMat<double> const& matrix, sgl::natural_vector const& rows) {
-
-    /*TODO is it somewhat unsatisfactory that we have to convert the matrix to a dense representation before subsetting
-     * an efficient solution using sparse representation would be nice
-     */
-    arma::Mat<double> tmp(matrix);
-    arma::SpMat<double> sub_matrix(tmp.rows(rows));
-
-    return sub_matrix;
-}
 
 //template argument T = matrix type
 template<typename T>
@@ -85,7 +69,7 @@ public:
 
 	MatrixData(MatrixData<T> const& data) :
 			data_matrix(data.data_matrix), n_samples(data.n_samples) {
-		//TODO efficiency number of times copied
+		//NOTE efficiency number of times copied
         this->validity();
 	}
 
@@ -125,6 +109,7 @@ private:
     }
 };
 
+template<char symbol>
 class GroupData {
 
 public:
@@ -139,8 +124,9 @@ public:
 	GroupData(sgl::natural_vector const& grouping) :
 			grouping(grouping), n_groups(max(grouping)+1) {}
 
-	GroupData(rList const& rdata) : grouping(getData<sgl::natural_vector>(rdata, 'G')), n_groups(max(grouping)+1) {
-	}
+	GroupData(rList const& rdata) :
+		grouping(getData<sgl::natural_vector>(rdata, symbol)),
+		n_groups(max(grouping)+1) {}
 
 	GroupData(GroupData const& data) :
 			grouping(data.grouping), n_groups(max(grouping)+1) {}
