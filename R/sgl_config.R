@@ -99,7 +99,7 @@ sgl.standard.config <- sgl.algorithm.config();
 #' @return list
 #'
 #' @author Martin Vicnet
-#' @useDynLib sglOptim r_pkg_c_config
+#' @useDynLib sglOptim, .registration=TRUE
 #' @export
 sgl.c.config <- function() {
 	.Call("r_pkg_c_config")

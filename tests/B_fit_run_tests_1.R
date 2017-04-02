@@ -20,7 +20,7 @@ data <- create_test_data()
 values <- expand.grid(
   grouping = list(
     NULL,
-    factor(1:ncol(data$X) %% 3)
+    factor(1:ncol(data$X) %% 7)
   ),
   groupWeights = list(NULL),
   parameterWeights = list(NULL),

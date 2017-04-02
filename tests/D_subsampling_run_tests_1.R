@@ -16,17 +16,14 @@ data <- create_test_data()
 
 ## Possible args values
 values <- expand.grid(
-  grouping = list(
-    NULL,
-    factor(1:ncol(data$X) %% 3)
-    ),
+  grouping = list(NULL),
   groupWeights = list(NULL),
   parameterWeights = list(NULL),
   alpha = c(0, 0.5, 1),
   d = 100,
   lambda.min = 0.8,
   lambda.min.rel = TRUE,
-  test_train = c("A", "B"),
+  test_train = c("C", "A", "B"),
   responses = list(
     NULL,
     "link"
@@ -38,12 +35,7 @@ values <- expand.grid(
 consistency <- expand.grid(
   sparseX = c(TRUE, FALSE),
   sparseY = c(TRUE, FALSE),
-  objective = c(
-    "linear_test_diagonal_w",
-    "linear_test_identity",
-    "linear_test_full"
-    # block_diagonal will not work with ncol(W) = 1
-  )
+  objective =  "linear_test_diagonal_w"
 )
 
 not_on_cran(

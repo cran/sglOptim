@@ -26,6 +26,11 @@ subsampling_test_2 <- function(data, values, consistency, i, j) {
     test <- as.list(1:data$n_samples) # Test single tests
     train <- replicate(data$n_samples, 1:data$n_samples, simplify = FALSE)
 
+  } else if( values$test_train[i] == "C" ) {
+
+    test <- as.list(data$sample_names) # Test single tests
+    train <- replicate(data$n_samples, 1:data$n_samples, simplify = FALSE)
+
   } else {
     stop("unkown test_train")
   }

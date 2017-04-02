@@ -161,11 +161,11 @@ sgl_subsampling <- function(
 
 		lambda.list <- lambda
 
-	} else if ( ! compute_lambda ){
+	} else if ( ! compute_lambda && is.numeric(lambda) ){
 
 		lambda.list <- replicate(length(training), lambda, simplify = FALSE)
 
-	} else {
+	} else if ( is.numeric(lambda) ) {
 
 		# Compute lambda sequence
 
@@ -191,7 +191,9 @@ sgl_subsampling <- function(
 			lambda.min.rel = TRUE)
 		)
 
-	}
+	} else {
+    stop("lambda must be numeric or a list of numerics")
+  }
 
 	call_sym <- paste(module_name, "sgl_subsampling", sep="_")
 

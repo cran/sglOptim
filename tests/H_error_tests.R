@@ -52,6 +52,17 @@ assertWarning(
   )
 )
 
+### Invalid lambda
+assertError(
+  fit <- sgl_cv(
+    module_name =  "linear_test_diagonal_w",
+    PACKAGE = "sglOptim",
+    data = data,
+    alpha = 0.5,
+    lambda = "invalid",
+    fold = 10
+  )
+)
 
 ### Test for error if cv.indices invalid
 

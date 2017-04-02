@@ -30,8 +30,8 @@ values <- expand.grid(
 
 ## consistency args values
 consistency <- expand.grid(
-  sparseX = c(TRUE, FALSE),
-  sparseY = c(TRUE, FALSE),
+  sparseX = FALSE,
+  sparseY = FALSE,
   objective = c(
     "linear_test_diagonal_w",
     "linear_test_identity",

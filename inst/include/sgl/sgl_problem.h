@@ -162,33 +162,32 @@ bool SglProblem::has_unpenalized_paramters(sgl::numeric const alpha) const {
 
 
 sgl::vector const SglProblem::compute_bounds(
-    const sgl::vector & gradient_at_x,
-    sgl::parameter const& x,
-    sgl::numeric const alpha,
-    sgl::numeric const lambda) const {
+  const sgl::vector & gradient_at_x,
+  sgl::parameter const& x,
+  sgl::numeric const alpha,
+  sgl::numeric const lambda) const {
 
-        sgl::vector bounds(setup.n_blocks);
+    sgl::vector bounds(setup.n_blocks);
 
-        for (sgl::natural block_index = 0; block_index < setup.n_blocks; block_index++) {
+    for (sgl::natural block_index = 0; block_index < setup.n_blocks; block_index++) {
 
-                sgl::natural block_start = setup.block_start_index(block_index);
-                sgl::natural block_end = setup.block_end_index(block_index);
+      sgl::natural block_start = setup.block_start_index(block_index);
+      sgl::natural block_end = setup.block_end_index(block_index);
 
-                sgl::vector a = sort(abs(gradient_at_x.rows(block_start, block_end)) - lambda * alpha * setup.L1_penalty_weight(block_index), "descend");
-                sgl::numeric b = sgl::square(lambda * (1 - alpha) * setup.L2_penalty_weight(block_index));
+      sgl::vector a = sort(abs(gradient_at_x.rows(block_start, block_end)) - lambda * alpha * setup.L1_penalty_weight(block_index), "descend");
+      sgl::numeric b = sgl::square(lambda * (1 - alpha) * setup.L2_penalty_weight(block_index));
 
-                if (x.is_block_zero(block_index)) {
-                        bounds(block_index) = compute_t(a, b);
-                }
+      if (x.is_block_zero(block_index)) {
+        bounds(block_index) = compute_t(a, b);
+      }
 
-                else {
-                        bounds(block_index) = 0;
-                }
+      else {
+        bounds(block_index) = 0;
+      }
 
-                ASSERT_IS_FINITE(bounds(block_index));
-        }
+    }
 
-        return bounds;
+  return bounds;
 }
 
 
@@ -284,69 +283,65 @@ sgl::numeric SglProblem::compute_critical_lambda(sgl::vector v, sgl::vector z, s
 //a must be ordered in decreasing order
 sgl::numeric SglProblem::compute_t(sgl::vector const& a, sgl::numeric b) const {
 
-        sgl::numeric q1 = 0;
-        sgl::numeric q2 = 0;
-        sgl::numeric q3 = -b;
+  sgl::numeric q1 = 0;
+  sgl::numeric q2 = 0;
+  sgl::numeric q3 = -b;
 
-        if (b == 0) {
-                return sgl::pos(-a(0));
-        }
+  if (b == 0) {
+    return sgl::pos(-a(0));
+  }
 
-        sgl::natural i;
-        for (i = 0; i < a.n_elem; ++i) {
+  sgl::natural i;
+  for (i = 0; i < a.n_elem; ++i) {
+    if (a(i) < 0) {
+      break;
+    }
 
-                if (a(i) < 0) {
-                        break;
-                }
+    q1++;
+    q2 += a(i);
+    q3 += sgl::square(a(i));
+  }
 
-                q1++;
-                q2 += a(i);
-                q3 += sgl::square(a(i));
+  if (q3 > 0) {
+    return 0;
+  }
 
-        }
+  sgl::numeric r = -1;
 
-        if (q3 > 0) {
-                return 0;
-        }
+  for (; i < a.n_elem; ++i) {
 
-        sgl::numeric r = -1;
+    sgl::numeric x = sgl::pos(-a(i));
+    if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
 
-        for (; i < a.n_elem; ++i) {
+      x = sgl::pos(-a(i - 1));
 
-                sgl::numeric x = sgl::pos(-a(i));
+      if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
+        r = x;
+        break;
+      }
 
-                if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
+      break;
+    }
 
-                        x = sgl::pos(-a(i - 1));
+    q1++;
+    q2 += a(i);
+    q3 += sgl::square(a(i));
+  }
 
-                        if (q1 * sgl::square(x) + 2 * q2 * x + q3 > 0) {
-                                r = x;
-                                break;
-                        }
+  if (r == -1) {
+    //If not computed -> compute r
 
-                        break;
-                }
+    if(q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)) == 0) {
+      r = std::numeric_limits<double>::infinity();
+    }
 
-                q1++;
-                q2 += a(i);
-                q3 += sgl::square(a(i));
+    else {
+      r = -q3/ (q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)));
+    }
+  }
 
-        }
-
-        if (r == -1) {
-            //If not computed -> compute r
-
-            if(q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)) == 0) {
-                r = std::numeric_limits<double>::infinity();
-            }
-
-            else {
-                r = -q3/ (q2 + sqrt(sgl::pos(sgl::square(q2) - q1 * q3)));
-            }
-        }
-
-        ASSERT_IS_NUMBER(r);
-        ASSERT_IS_NON_NEGATIVE(r);
+  ASSERT_IS_NUMBER(r);
+  ASSERT_IS_NON_NEGATIVE(r);
 
         //DEBUGING
         //NOTE debug guards

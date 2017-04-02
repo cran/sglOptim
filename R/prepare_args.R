@@ -126,28 +126,45 @@ rearrange.sgldata <- function(data, covariate.order, ...)
 #' @family sgldata
 subsample.sgldata <- function(data, indices, ...)  {
 
-	data$sample_names <- data$sample_names[indices]
+  if( is.character(indices) ) {
+    if( ! all( indices %in% data$sample_names ) ) {
+      stop("indices not found in data")
+    }
 
-	data$data <- lapply(data$data, function(x) {
+    data$sample_names <- indices
 
-		if( is.null(x) ) {
+  } else {
+    data$sample_names <- data$sample_names[indices]
+  }
 
-			# do nothing
+  data$data <- lapply(data$data, function(x) {
 
-		} else if( is.vector(x) ) {
+    if( is.null(x) ) {
 
-			return( x[indices] )
+      # do nothing
 
-		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
+    } else if( is.vector(x) ) {
 
-			return( x[indices, , drop = FALSE] )
+      if(is.character(indices) && ! all( indices %in% names(x) )) {
+        stop("indices not found in data")
+      }
 
-	} else {
+      return( x[indices] )
 
-			stop(paste("Can not handle data of type:", class(x)))
+    } else if( is.matrix(x) || is(x, "Matrix") ) {
 
-		}
-	})
+      if(is.character(indices) && ! all( indices %in% rownames(x) )) {
+        stop("indices not found in data")
+      }
+
+      return( x[indices, , drop = FALSE] )
+
+    } else {
+
+      stop(paste("Can not handle data of type:", class(x)))
+
+    }
+  })
 
 	return(data)
 }
@@ -180,51 +197,77 @@ prepare_data <- function(
 		stop(paste("data matrix contains NA values"))
 	}
 
-	if( type == "numeric" ) {
+  if( type == "numeric" ) {
 
-		if(sparse && (is.matrix(x) || is(x, "sparseMatrix")) ) {
+    if(sparse && (is.matrix(x) || is(x, "Matrix")) ) {
 
-			return( as(x, "CsparseMatrix") )
-
-		}	else if( is.vector(x) ) {
-
-			return( as.numeric(x) )
-
-		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
-
-			x <- as.matrix(x)
-			return( apply(x, c(1,2), as.numeric) )
-
-		} else {
-			stop(paste("data matrix is of unknown type: ", class(x)))
-		}
-	}
-
-	if( type == "integer" ) {
-
-		if(sparse && (is.matrix(x) || is(x, "sparseMatrix")) ) {
-
-			return( as(x, "CsparseMatrix") )
+      return( as(x, "CsparseMatrix") )
 
 		}	else if( is.vector(x) ) {
 
-			return( as.integer(x) )
+      element_names <- names(x)
+      x <- as.numeric(x)
+      names(x) <- element_names
 
-		} else if( is.matrix(x) || is(x, "sparseMatrix") ) {
+      return( x )
 
-			return( apply(x, c(1,2), as.integer) )
+		} else if( is.matrix(x) || is(x, "Matrix") ) {
+
+      element_names <- dimnames(x)
+      x <- as.matrix(x)
+      x <- apply(x, c(1,2), as.numeric)
+      dimnames(x) <- element_names
+
+      return( x )
 
 		} else {
-			stop(paste("data matrix is of unknown type: ", class(x)))
-		}
+
+      stop(paste("data matrix is of unknown type: ", class(x)))
+
+    }
 	}
+
+  if( type == "integer" ) {
+
+    if(sparse && (is.matrix(x) || is(x, "Matrix")) ) {
+
+      return( as(x, "CsparseMatrix") )
+
+    }	else if( is.vector(x) ) {
+
+      element_names <- names(x)
+      x <- as.integer(x)
+      names(x) <- element_names
+
+      return( x )
+
+    } else if( is.matrix(x) || is(x, "Matrix") ) {
+
+      element_names <- dimnames(x)
+      x <- as.matrix(x)
+      x <- apply(x, c(1,2), as.integer)
+      dimnames(x) <- element_names
+
+      return( x )
+
+    } else {
+      stop(paste("data matrix is of unknown type: ", class(x)))
+
+    }
+  }
 
 	if(type == "factor") {
-		return( as.integer(x) - 1L )
-	}
 
-	stop(paste("can not handle type '",type,"'",sep=""))
-	}
+    element_names <- names(x)
+    x <- as.integer(x) - 1L
+    names(x) <- element_names
+
+    return( x )
+
+  }
+
+  stop(paste("can not handle type '",type,"'",sep=""))
+}
 
 #' @title Create a sgldata object
 #'
@@ -291,7 +334,7 @@ create.sgldata <- function(x, y,
 
 .get_response_dimension <- function(x) {
 
-	if( is.matrix(x) || is(x, "sparseMatrix") ) {
+	if( is.matrix(x) || is(x, "Matrix") ) {
 		return(ncol(x))
 	}
 
@@ -312,7 +355,7 @@ create.sgldata <- function(x, y,
 
 .get_response_names <- function(x) {
 
-	if( is.matrix(x) || is(x, "sparseMatrix") ) {
+	if( is.matrix(x) || is(x, "Matrix") ) {
 		return(colnames(x))
 	}
 
@@ -347,37 +390,61 @@ create.sgldata <- function(x, y,
 #' @author Martin Vincent
 #' @export
 #' @family sgldata
-add_data.sgldata <- function( data,
-	x,
-	name,
-	default = NULL,
-	type = element_class(x),
-	sparse = is(x, "sparseMatrix"), ... ) {
+add_data.sgldata <- function(
+  data,
+  x,
+  name,
+  default = NULL,
+  type = element_class(x),
+  sparse = is(x, "sparseMatrix"), ... ) {
 
-	if( is.null(data$data) ) {
-		data$data <- list()
-	}
+  if( is.null(data$data) ) {
+    data$data <- list()
+  }
 
-	sparse_name <- paste("sparse", name, sep="")
-	data[[sparse_name]] <- sparse
+  sparse_name <- paste("sparse", name, sep="")
+  data[[sparse_name]] <- sparse
 
-	data$data[[name]] <- prepare_data(x,
-		default = default,
-		type = type,
-		sparse = sparse)
+  data$data[[name]] <- prepare_data(
+    x,
+    default = default,
+    type = type,
+    sparse = sparse
+  )
 
-	# check dimension
-	if( ! is.null(data$data[[name]]) ) {
-		if( is.vector(data$data[[name]]) ) {
-			ns <- length(x)
+  if( is.null(data$data[[name]]) ) {
+    return( data )
+  }
+
+  # check dimension
+  if( ! is.null(data$data[[name]]) ) {
+    if( is.vector(data$data[[name]]) ) {
+      ns <- length(x)
+    } else {
+      ns <- nrow(data$data[[name]])
+    }
+
+    if(ns != data$n_samples) {
+      stop("data dimension inconsistent")
+    }
+  }
+
+  # Sample names
+  if( ! is.null(data$sample_names) ) {
+    if( is.vector(data$data[[name]]) ) {
+      if(is.null(names(data$data[[name]]))) {
+        names(data$data[[name]]) <- data$sample_names
+      } else if( any(names(data$data[[name]]) != data$sample_names)) {
+        stop("sample names mismatch")
+      }
 		} else {
-			ns <- nrow(data$data[[name]])
+      if(is.null(rownames(data$data[[name]]))) {
+        rownames(data$data[[name]]) <- data$sample_names
+      } else if( any(rownames(data$data[[name]]) != data$sample_names)) {
+        stop("sample names mismatch")
+      }
 		}
-
-		if(ns != data$n_samples) {
-			stop("data dimension inconsistent")
-		}
-	}
+  }
 
 	return( data )
 }
@@ -523,7 +590,7 @@ element_class <- function(x) {
 		return( NULL )
 	} else if( is.matrix(x) ) {
 		return( class(x[1,1]) )
-	} else if( is(x, "sparseMatrix") ) {
+	} else if( is(x, "Matrix") ) {
 		return( class(x[1,1]) )
 	} else if ( is.vector(x) ) {
 		return( class(x) )

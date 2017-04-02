@@ -308,7 +308,9 @@ static const R_CallMethodDef sglCallMethods[] = {
 	RTOOLS_TEST(field_col_s32),
 	RTOOLS_TEST(field_sp_mat),
 
-	{NULL}
+  {"r_pkg_c_config", (DL_FUNC) &r_pkg_c_config, 0},
+
+  {NULL, NULL, 0}
 };
 
 extern "C" {
@@ -319,4 +321,5 @@ void R_init_sglOptim(DllInfo *info)
 {
 	// Register the .Call routines.
 	R_registerRoutines(info, NULL, sglCallMethods, NULL, NULL);
+  R_useDynamicSymbols(info, FALSE);
 }
