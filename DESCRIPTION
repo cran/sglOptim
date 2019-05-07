@@ -1,8 +1,8 @@
 Package: sglOptim
 Type: Package
 Title: Generic Sparse Group Lasso Solver
-Version: 1.3.7
-Date: 2018-10-18
+Version: 1.3.8
+Date: 2019-05-07
 Authors@R: c(
         person("Martin", "Vincent", role = "aut"),
         person("Niels", "Richard Hansen", email = "niels.r.hansen@math.ku.dk", role = c("ctb", "cre"))
@@ -26,11 +26,11 @@ Depends: R (>= 3.2.4), Matrix, foreach, doParallel
 LinkingTo: Rcpp, RcppProgress, RcppArmadillo, BH
 Suggests: knitr, rmarkdown
 VignetteBuilder: knitr
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.1
 NeedsCompilation: yes
-Packaged: 2018-10-20 20:32:29 UTC; xqz683
+Packaged: 2019-05-07 19:21:09 UTC; xqz683
 Author: Martin Vincent [aut],
   Niels Richard Hansen [ctb, cre]
 Maintainer: Niels Richard Hansen <niels.r.hansen@math.ku.dk>
 Repository: CRAN
-Date/Publication: 2018-10-21 07:30:02 UTC
+Date/Publication: 2019-05-07 22:10:03 UTC
